@@ -14,83 +14,121 @@ import sys
 import datetime
 
 import json
+import ollama
+import openai
+import tiktoken
 
 from autogen import ConversableAgent, GroupChat, GroupChatManager, AssistantAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
 from config import config
 
+DEBUG_MODE = False
+
 class iExplain:
-    """Generate explanations for actions and adaptations made by AI agents.
+    """iExplain framework for generating explanations.
 
-    iExplain is a Python framework designed to generate human-understandable
-    explanations for a series of actions, events, or decisions. These actions
-    could originate from AI agents, machine learning models, or even sequences
-    in a complex system. The goal is to provide clear, context-aware
-    explanations that help users understand why a specific sequence of events
-    occurred.
+    iExplain generates human-understandable explanations for actions, events,
+    or decisions made by AI agents or systems. It aims to provide clear,
+    context-aware explanations to help users understand the reasoning behind
+    specific sequences of events.
 
-    The framework is centered around the concept of **Intent-based Computing**,
-    where actions are driven by high-level intents or objectives. By tracing
-    the reasoning behind each action, iExplain aims to reveal the complex
-    decision-making processes and enhance transparency in AI systems.
-
-    iExplain employs a set of interacting LLM (Large Language Model) agents
-    to generate explanations based on input data and contextual information.
-    These agents can leverage pre-trained language models (e.g., GPT-4) or
-    domain-specific models to collaboratively generate explanations tailored to
-    different audiences or applications. The interaction between multiple LLM
-    agents allows the framework to reason about diverse factors and arrive at
-    coherent, multi-layered explanations.
+    The framework uses interacting LLM (Large Language Model) agents to
+    generate explanations based on input data and context. These agents can
+    leverage pre-trained language models (e.g., GPT-4) or domain-specific
+    models to collaboratively produce coherent explanations.
 
     """
 
     def __init__(self):
         """Initialize the iExplain framework."""
 
+        self.plain_text_formats = [".txt", ".csv", ".log", ".md"]
+
         if config.LLM_SERVICE == "openai":
             self.config_list = [{
                 "model": config.LLM_MODEL, 
                 "api_key": os.environ.get("OPENAI_API_KEY")
             }]
+            self.max_context_length = 100000
         elif config.LLM_SERVICE == "ollama":
             self.config_list = [{
                 "model": config.LLM_MODEL, 
                 "api_type": "ollama",
             }]
 
-        self.event_collector = ConversableAgent(
-            name="EventCollectorAgent",
-            system_message="Collect and summarize events from the system.",
-            description="I collect and summarize events from the system.",
-            llm_config={"config_list": self.config_list},
-            code_execution_config=False,
-            function_map=None,
-            human_input_mode="NEVER",
-        )
-    
+            # Find context length
+            modelinfo = ollama.show(config.LLM_MODEL).modelinfo
+            # Find an item in modelinfo with a key that contains the string "context_length"
+            context_length_key = next(item for item in modelinfo if "context_length" in item)
+            self.max_context_length = modelinfo[context_length_key]
+        else:
+            raise ValueError("Invalid LLM service specified in config.")
+
+
         # Agent for collecting and summarizing metadata
         self.metadata_collector = ConversableAgent(
-            name="MetadataCollectorAgent",
+            name="MetadataParserAgent",
             system_message="Collect and summarize metadata from the system.",
             description="I collect and summarize metadata from the system.",
             llm_config={"config_list": self.config_list},
             code_execution_config=False,
             function_map=None,
-            human_input_mode="NEVER",
+            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
+        )
+
+        self.log_analyzer = ConversableAgent(
+            name="LogAnalyzerAgent",
+            system_message="""You analyze system logs to identify patterns and relationships. Your tasks:
+            1. Identify the structure and format of the logs
+            2. Group related events based on available identifiers (timestamps, IDs, etc.)
+            3. Detect sequences of related events
+            4. Identify critical or anomalous patterns
+            
+            For any log format, focus on:
+            - Temporal patterns (when events occur)
+            - Entity relationships (which components/systems are involved)
+            - Event severity and types
+            - Error propagation patterns""",
+            description="I analyze raw log data to extract meaningful patterns and event sequences.",
+            llm_config={"config_list": self.config_list},
+            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
+        )
+
+        self.context_provider = ConversableAgent(
+            name="ContextProviderAgent",
+            system_message="""You provide system and operational context for log events. Your tasks:
+            1. Interpret error messages and system events
+            2. Explain relationships between different system components
+            3. Assess potential impacts of observed patterns
+            4. Distinguish between normal operations and potential issues
+            
+            Consider:
+            - The type of system generating the logs
+            - Common patterns in such systems
+            - Potential implications of different event types
+            - Relationships between different components""",
+            description="I provide technical and operational context for system events.",
+            llm_config={"config_list": self.config_list},
+            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
         )
 
         self.explanation_generator = ConversableAgent(
-            name="ExplanationGeneratorAgent",
-            system_message="""
-Generate a concise explanation of event sequences based on the provided summaries. Focus on causality and relationships between events.
-""",
-            description="I generate concise explanations of event sequences based on input data.",
+            name="ExplanationAgent",
+            system_message="""Generate clear, structured explanations of system events at multiple levels:
+            1. Technical Details: What exactly happened in the system
+            2. System Impact: How these events affect system operation
+            3. Operational Context: What this means for system management
+            4. Recommendations: Suggested actions or monitoring needs
+            
+            Create explanations that:
+            - Connect related events into coherent narratives
+            - Highlight important patterns and their implications
+            - Scale detail based on the audience (technical vs operational)
+            - Provide actionable insights""",
+            description="I create multi-level explanations of system events.",
             llm_config={"config_list": self.config_list},
-            code_execution_config=False,
-            function_map=None,
-            human_input_mode="NEVER",
-            is_termination_msg=lambda msg: "TERMINATE" in msg["content"],
+            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
         )
 
         self.evaluator = ConversableAgent(
@@ -100,17 +138,17 @@ Generate a concise explanation of event sequences based on the provided summarie
             llm_config={"config_list": self.config_list},
             code_execution_config=False,
             function_map=None,
-            human_input_mode="NEVER",
+            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
         )
 
-        self.initiator = ConversableAgent(
-            name="InitiatorAgent",
-            system_message="Initiate the conversation by asking the EventCollectorAgent and MetadataCollectorAgent to provide their summaries.",
-            description="I initiate the conversation by asking for event and metadata summaries.",
-            llm_config=False,
+        self.moderator = ConversableAgent(
+            name="ModeratorAgent",
+            system_message="You are an AI-based moderator that makes plans for the whole group. When you get a task, break it down into sub-tasks, each to be performed by one of your 'partner agents'. You will get an introduction about what each of your partner agents can do. If you speak in the middle of two tasks, remember to repeat the key information you get from the previous speaker, so that the next speaker has sufficient context. You will also serve as the interface to the human proxy.",
+            description="I am an AI-based moderator that makes plans for the whole group and serves as the interface to the human proxy.",
+            llm_config={"config_list": self.config_list},
             code_execution_config=False,
             function_map=None,
-            human_input_mode="NEVER",
+            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
         )
 
         self.human_proxy = ConversableAgent(
@@ -127,10 +165,7 @@ Generate a concise explanation of event sequences based on the provided summarie
             if log_file.endswith(".json"):
                 with open(config.LOGS_PATH / log_file, "r") as f:
                     logs.append(json.load(f))
-            elif log_file.endswith(".txt"):
-                with open(config.LOGS_PATH / log_file, "r") as f:
-                    logs.append(f.read())
-            elif log_file.endswith(".csv"):
+            elif any(log_file.endswith(fmt) for fmt in self.plain_text_formats):
                 with open(config.LOGS_PATH / log_file, "r") as f:
                     logs.append(f.read())
             else:
@@ -142,12 +177,11 @@ Generate a concise explanation of event sequences based on the provided summarie
         """Read the metadata from the metadata directory."""
 
         metadata = []
-        plain_text_formats = [".txt", ".csv", ".log", ".md"]
         for metadata_file in os.listdir(config.METADATA_PATH):
             if metadata_file.endswith(".json"):
                 with open(config.METADATA_PATH / metadata_file, "r") as f:
                     metadata.append(json.load(f))
-            elif any(metadata_file.endswith(fmt) for fmt in plain_text_formats):
+            elif any(metadata_file.endswith(fmt) for fmt in self.plain_text_formats):
                 with open(config.METADATA_PATH / metadata_file, "r") as f:
                     metadata.append(f.read())
             else:
@@ -155,50 +189,36 @@ Generate a concise explanation of event sequences based on the provided summarie
 
         return metadata
 
+    def limit_token_length(self, text):
+        """Limit the token length to avoid exceeding the LLM token limit."""
+        indicator = " [truncated]"
+        encoding = tiktoken.encoding_for_model(config.LLM_MODEL)
+        encoded_text = encoding.encode(text)
+        encoded_indicator = encoding.encode(indicator)
+        if len(encoded_text) > self.max_context_length:
+            encoded_text = encoded_text[:self.max_context_length - len(encoded_indicator)]
+            encoded_text += encoded_indicator
+        text = encoding.decode(encoded_text)
+        return text
+
     def run(self):
         """Run the iExplain framework."""
-        logs = self.read_logs()
-        metadata = self.read_metadata()
-        group_chat_manager = self.setup_group_chat_manager()
-        self.initiate_conversation(group_chat_manager, logs, metadata)
-        self.save_conversation(group_chat_manager)
+        self.logs = self.read_logs()
+        self.metadata = self.read_metadata()
+        self.combined_logs = "\n".join(self.logs)
+        self.combined_metadata = "\n".join(self.metadata)
 
-    def setup_group_chat_manager(self):
-        """Set up the group chat manager with agents and transitions."""
-        allowed_transitions = {
-            self.initiator: [self.event_collector, self.metadata_collector, self.explanation_generator, self.evaluator],
-            self.event_collector: [self.explanation_generator, self.metadata_collector, self.initiator],
-            self.metadata_collector: [self.explanation_generator, self.event_collector, self.initiator],
-            self.explanation_generator: [self.evaluator, self.event_collector, self.metadata_collector, self.initiator],
-            self.evaluator: [self.explanation_generator],
-        }
+        self.initiate_conversation()
 
-        group_chat = GroupChat(
-            agents=[self.initiator, self.event_collector, self.metadata_collector, self.explanation_generator, self.evaluator],
-            allowed_or_disallowed_speaker_transitions=allowed_transitions,
-            speaker_transitions_type="allowed",
-            messages=[],
-            max_round=6,
-            send_introductions=True,
-            speaker_selection_method="auto",
-        )
-
-        return GroupChatManager(
-            groupchat=group_chat,
-            llm_config={"config_list": self.config_list},
-        )
-
-    def initiate_conversation(self, group_chat_manager, logs, metadata):
+    def initiate_conversation(self):
         """Initiate the conversation by asking for event and metadata summaries."""
-        combined_logs = "\n".join(logs)
-        combined_metadata = "\n".join(metadata)
 
         # Start by summarizing the metadata
-        metadata_summary = self.initiator.initiate_chats(
+        metadata_summary = self.moderator.initiate_chats(
             [
                 {
                     "recipient": self.metadata_collector,
-                    "message": "MetadataCollectorAgent, please summarize the following metadata:\n\n" + combined_metadata,
+                    "message": "Please summarize the following metadata:\n\n" + self.combined_metadata,
                     "clear_history": False,
                     "max_turns": 1,
                     "summary_method": "last_msg"
@@ -206,12 +226,13 @@ Generate a concise explanation of event sequences based on the provided summarie
             ]
         )[-1].summary
 
-        # Metadata summary is provided to the EventCollectorAgent, which will summarize the logs
-        event_log_summary = self.initiator.initiate_chats(
+        # Summarizing logs
+        log_message = self.limit_token_length(f"Here are some logs with the following metadata:\n\n{metadata_summary}\n\n{self.combined_logs}")
+        event_log_summary = self.moderator.initiate_chats(
             [
                 {
-                    "recipient": self.event_collector,
-                    "message": f"EventCollectorAgent, here are some logs with the following metadata:\n\n{metadata_summary}\n\nPlease summarize the following logs:\n\n{combined_logs}",
+                    "recipient": self.log_analyzer,
+                    "message": log_message,
                     "clear_history": False,
                     "max_turns": 1,
                     "summary_method": "last_msg"
@@ -220,11 +241,11 @@ Generate a concise explanation of event sequences based on the provided summarie
         )[-1].summary
 
         # ExplanationGeneratorAgent generates explanations based on the summaries
-        explanation = self.initiator.initiate_chats(
+        explanation = self.moderator.initiate_chats(
             [
                 {
                     "recipient": self.explanation_generator,
-                    "message": f"ExplanationGeneratorAgent, please generate an explanation based on the following summaries:\n\nMetadata Summary:\n{metadata_summary}\n\nEvent Log Summary:\n{event_log_summary}",
+                    "message": f"Please generate an explanation based on the following summaries:\n\nMetadata Summary:\n{metadata_summary}\n\nEvent Log Summary:\n{event_log_summary}",
                     "clear_history": False,
                     "max_turns": 1,
                     "summary_method": "last_msg"
@@ -232,36 +253,6 @@ Generate a concise explanation of event sequences based on the provided summarie
             ]
         )[-1].summary
 
-        # chat_results = self.initiator.initiate_chats(
-        #     [
-        #         {
-        #             "recipient": group_chat_manager,
-        #             "message": f"Here are the summaries of the logs and metadata:\n\nMetadata Summary:\n{metadata_summary}\n\nEvent Log Summary:\n{event_log_summary}\n\nPlease give a summary of the logs and metadata.",
-        #         },
-        #     ]
-        # )
-
-        # # Present summaries to the user and allow them to ask questions
-        # self.human_proxy.initiate_chats(
-        #     [
-        #         {
-        #             "recipient": group_chat_manager,
-        #             "message": f"Here are the summaries of the logs and metadata:\n\nMetadata Summary:\n{metadata_summary}\n\nEvent Log Summary:\n{event_log_summary}\n\nPlease ask any questions you have, and I will pass them on to the most suitable agent."
-        #         }
-        #     ]
-        # )
-
-    def save_conversation(self, group_chat_manager):
-        """Save the conversation logs to the output folder with a timestamp."""
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_file = config.OUTPUT_PATH / f"conversation_{timestamp}.txt"
-        
-        with open(output_file, "w") as f:
-            for message in group_chat_manager.groupchat.messages:
-                role = message.get('role', 'Unknown role')
-                name = message.get('name', 'Unknown name')
-                content = message.get('content', '')
-                f.write(f"{role}, {name}: {content}\n")
 
 if __name__ == '__main__':
     iexplain = iExplain()
