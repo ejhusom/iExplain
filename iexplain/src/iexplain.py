@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""GenExplain - Explainability module.
+"""iExplain - Explainability module.
 
 This module provides the functionality to generate explanations for system
 adaptations based on log entries. It is intended to be used as a part of the
@@ -21,10 +21,10 @@ from config import config
 #from agents.explanation_generator import ExplanationGeneratorAgent
 #from agents.evaluator import EvaluatorAgent
 
-class GenExplain:
+class iExplain:
     """Generate explanations for actions and adaptations made by AI agents.
 
-    GenExplain is a Python framework designed to generate human-understandable
+    iExplain is a Python framework designed to generate human-understandable
     explanations for a series of actions, events, or decisions. These actions
     could originate from AI agents, machine learning models, or even sequences
     in a complex system. The goal is to provide clear, context-aware
@@ -33,10 +33,10 @@ class GenExplain:
 
     The framework is centered around the concept of **Intent-based Computing**,
     where actions are driven by high-level intents or objectives. By tracing
-    the reasoning behind each action, GenExplain aims to reveal the complex
+    the reasoning behind each action, iExplain aims to reveal the complex
     decision-making processes and enhance transparency in AI systems.
 
-    GenExplain employs a set of interacting LLM (Large Language Model) agents
+    iExplain employs a set of interacting LLM (Large Language Model) agents
     to generate explanations based on input data and contextual information.
     These agents can leverage pre-trained language models (e.g., GPT-4) or
     domain-specific models to collaboratively generate explanations tailored to
@@ -47,7 +47,7 @@ class GenExplain:
     """
 
     def __init__(self, config_file: str = "config.ini"):
-        """Initialize the GenExplain framework.
+        """Initialize the iExplain framework.
 
         Args:
             config_file (str): The path to the configuration file.
@@ -64,15 +64,6 @@ class GenExplain:
             function_map=None,
             human_input_mode="NEVER",
         )
-
-#    {
-#        "event_id": "123456",
-#        "event_type": "User_Input",
-#        "timestamp": "2024-08-21T09:00:00Z",
-#        "details": {
-#            "input_text": "Hello, how are you?"
-#        }
-#    }
 
         self.event_tracker = ConversableAgent(
             name="EventTrackerAgent",
@@ -113,7 +104,7 @@ Your goal is to provide insightful and actionable explanations that help users u
         )
 
     def run(self, logs_json: str):
-        """Run the GenExplain framework.
+        """Run the iExplain framework.
 
         Args:
             logs_json (str): The path to the log entries in JSON format.
@@ -172,7 +163,7 @@ Your goal is to provide insightful and actionable explanations that help users u
 
 if __name__ == '__main__':
 
-    genexplain = GenExplain()
+    iexplain = iExplain()
 
     # Read the log entries from files located in the directory passed as an
     # argument. If no directory is passed, read the log entries from the
@@ -187,8 +178,7 @@ if __name__ == '__main__':
     print(logs_json)
     #breakpoint()
 
-    # Run the GenExplain framework with the log entries.
-    genexplain.run(str(logs_json))
-
+    # Run the iExplain framework with the log entries.
+    iexplain.run(str(logs_json))
 
 
