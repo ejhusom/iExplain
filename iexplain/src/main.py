@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """iExplain - Explainability module.
 
-This module provides the functionality to generate explanations for system
-adaptations based on log entries. It is intended to be used as a part of the
-inGen system, which is a conversational AI system that can adapt to user
-feedback.
+This module provides the functionality to make sense of system logs and
+metadata by generating human-understandable explanations. It uses interacting
+LLM (Large Language Model) agents to analyze logs, summarize metadata, and
+generate explanations based on the input data.
 
 """
 import configparser
@@ -65,6 +65,16 @@ class iExplain:
         else:
             raise ValueError("Invalid LLM service specified in config.")
 
+        # Agent for receiving input and routing it to the correct agent
+        # self.group_chat_manager = GroupChatManager(
+        #     name="GroupChatManager",
+        #     system_message="You are the group chat manager. You receive input and route it to the correct agent.",
+        #     description="I receive input and route it to the correct agent.",
+        #     llm_config={"config_list": self.config_list},
+        #     code_execution_config=False,
+        #     function_map=None,
+        #     human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
+        # )
 
         # Agent for collecting and summarizing metadata
         self.metadata_collector = ConversableAgent(
@@ -192,6 +202,7 @@ class iExplain:
     def limit_token_length(self, text):
         """Limit the token length to avoid exceeding the LLM token limit."""
         indicator = " [truncated]"
+
         encoding = tiktoken.encoding_for_model(config.LLM_MODEL)
         encoded_text = encoding.encode(text)
         encoded_indicator = encoding.encode(indicator)
@@ -227,7 +238,8 @@ class iExplain:
         )[-1].summary
 
         # Summarizing logs
-        log_message = self.limit_token_length(f"Here are some logs with the following metadata:\n\n{metadata_summary}\n\n{self.combined_logs}")
+        # log_message = self.limit_token_length(f"Here are some logs with the following metadata:\n\n{metadata_summary}\n\n{self.combined_logs}")
+        log_message = f"Here are some logs with the following metadata:\n\n{metadata_summary}\n\n{self.combined_logs}"
         event_log_summary = self.moderator.initiate_chats(
             [
                 {

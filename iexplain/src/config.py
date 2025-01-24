@@ -27,10 +27,10 @@ class Config:
         self.OUTPUT_PATH = Path("./output")
 
         # User-defined parameters:
-        self.LLM_SERVICE = "openai"
-        self.LLM_MODEL = "gpt-4o-mini"
-        # self.LLM_SERVICE = "ollama"
-        # self.LLM_MODEL = "gemma2:2b-instruct-q3_K_S"
+        # self.LLM_SERVICE = "openai"
+        # self.LLM_MODEL = "gpt-4o-mini"
+        self.LLM_SERVICE = "ollama"
+        self.LLM_MODEL = "gemma2:2b-instruct-q3_K_S"
         self.LLM_API_KEY = os.environ.get("OPENAI_API_KEY")
         self.use_case_context = "A company is using an edge-cloud computing infrastructure to process data from IoT devices spread across multiple locations. The primary intent is to optimize energy consumption across the infrastructure while ensuring data is processed efficiently and sustainably."
         self.system_prompt =	"""
