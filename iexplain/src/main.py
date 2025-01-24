@@ -18,7 +18,7 @@ import ollama
 import openai
 import tiktoken
 
-from autogen import ConversableAgent, GroupChat, GroupChatManager, AssistantAgent
+from autogen import ConversableAgent, GroupChat, GroupChatManager, AssistantAgent, UserProxyAgent
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
 from config import config
@@ -281,11 +281,28 @@ class iExplain:
             files (list): List of file paths to be explained.
 
         """
-        pass
+
+        # Create an AssistantAgent instance named "assistant"
+        assistant = AssistantAgent(
+            name="assistant",
+            llm_config={"config_list": self.config_list},
+        )
+        # create a UserProxyAgent instance named "user_proxy"
+        user_proxy = UserProxyAgent(
+            name="user_proxy",
+            human_input_mode="ALWAYS"
+        )
+
+        task = "Start a conversation."
+
+        user_proxy.initiate_chat(
+            assistant,
+            message=task
+        )
 
 
 if __name__ == '__main__':
     iexplain = iExplain()
-    iexplain.run()
+    iexplain.explain(3)
 
 
