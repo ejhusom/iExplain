@@ -211,20 +211,17 @@ class iExplain:
     def run_v3(self):
         """Run the iExplain framework version 3."""
 
-        # Create a local command line code executor.
-        executor = LocalCommandLineCodeExecutor(
-            timeout=10,  # Timeout for each code execution in seconds.
-            work_dir="groupchat"
-        )
-
         groupchat = GroupChat(
             agents=[
-                self.agents["user_proxy"],
-                self.agents["code_executor"],
-                self.agents["logparser"],
+                self.agents["user_proxy_agent"],
+                self.agents["input_agent"],
+                self.agents["code_executor_agent"],
+                self.agents["code_writer_agent"],
+                self.agents["data_reader_agent"],
+                self.agents["log_parser_agent"],
             ],
             messages=[],
-            max_round=25,
+            max_round=60,
             send_introductions=True
         )
 
@@ -233,12 +230,13 @@ class iExplain:
             llm_config={"config_list": self.config_list}
         )
 
-        self.agents["user_proxy"].initiate_chat(
-            self.agents["manager"],
-            message="Parse the logs in ../data/logs"
+        self.agents["user_proxy_agent"].initiate_chat(
+        # self.agents["code_executor_agent"].initiate_chat(
+            manager,
+            message="Look at the logs in './logs/'. List, read, and parse them."
         )
 
 if __name__ == '__main__':
     iexplain = iExplain()
     # iexplain.run_v1()
-    iexplain.run_v2()
+    iexplain.run_v3()

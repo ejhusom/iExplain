@@ -1,7 +1,7 @@
 from logparser.Drain import LogParser
 from typing import List
 
-def parse_logs(input_dir: str, output_dir: str, log_file: str, log_format: str, regex: List[str], depth: int = 4, similarity_threshold: float = 0.5) -> None:
+def parse_logs(input_dir: str, output_dir: str, log_file: str, log_format: str, regex: List[str], depth: int = 4, similarity_threshold: float = 0.5) -> str:
     """
     Parse logs using the specified format and parameters.
 
@@ -22,4 +22,7 @@ def parse_logs(input_dir: str, output_dir: str, log_file: str, log_format: str, 
         st=similarity_threshold,
         rex=regex
     )
-    parser.parse(log_file)
+    result = parser.parse(log_file)
+    print(result)
+
+    return result
