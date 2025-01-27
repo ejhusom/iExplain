@@ -1,3 +1,39 @@
+user_proxy:
+  system_message: "A human admin."
+  description: "I act as a proxy for human input."
+  human_input_mode: "TERMINATE"
+  llm_config: "default"
+
+log_parser:
+  system_message: |
+    You analyze logs and determine the appropriate parameters for the LogParserAgent.
+    Your tasks are:
+    1. Identify the log format from provided sample logs.
+    2. Suggest regular expressions for preprocessing (e.g., masking IP addresses or other patterns).
+    3. Provide any additional parameters needed for parsing, such as depth or similarity thresholds.
+    4. Use the tool 'parse_logs' to parse logs based on the identified format.
+    
+    Log format should include placeholders for fields, e.g.:
+    - '<Date> <Time> <Level>:<Content>'
+    - '<Timestamp> <Component> <Message>'
+    For regex, consider patterns such as:
+    - r'(/|)([0-9]+\.){3}[0-9]+(:[0-9]+|)(:|)' (IP addresses)
+    - r'UID-[0-9]+' (User IDs)
+  description: "I determine the log format and preprocessing requirements for the LogParserAgent."
+  human_input_mode: "NEVER"
+  llm_config: "default"
+  tools:
+  - parse_logs: "Parse logs using the LogParser library."
+
+code_executor:
+  system_message: ""
+  code_execution_config: {"executor": executor}
+  human_input_mode: "ALWAYS"
+  llm_config: False
+
+##################################################################
+# V1 and V2 agents
+
 MetadataParserAgent:
   system_message: "Collect and summarize metadata from the system."
   description: "I collect and summarize metadata from the system."

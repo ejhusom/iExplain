@@ -12,6 +12,7 @@ import configparser
 import os
 import sys
 import datetime
+from typing import List, Dict, Any
 
 import json
 import ollama
@@ -25,6 +26,8 @@ from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
 from config import config
+from tools import parse_logs
+from agents import get_agents
 
 DEBUG_MODE = False
 
@@ -45,7 +48,6 @@ class iExplain:
 
     def __init__(self):
         """Initialize the iExplain framework."""
-
         self.plain_text_formats = [".txt", ".csv", ".log", ".md"]
 
         if config.LLM_SERVICE == "openai":
@@ -68,31 +70,17 @@ class iExplain:
         else:
             raise ValueError("Invalid LLM service specified in config.")
 
-        self.agents = self.load_agents_from_config()
+        self.agents = get_agents(self.config_list)
 
-    def load_agents_from_config(self):
-        """Load agents from the YAML configuration file."""
-        with open("src/agents.yaml", "r") as file:
-            agents_config = yaml.safe_load(file)
+    def limit_token_length(self, text: str) -> str:
+        """Limit the token length to avoid exceeding the LLM token limit.
 
-        agents = {}
-        for agent_name, agent_config in agents_config.items():
-            llm_config = {"config_list": self.config_list} if agent_config["llm_config"] == "default" else agent_config["llm_config"]
-            agent = ConversableAgent(
-                name=agent_name,
-                system_message=agent_config["system_message"],
-                description=agent_config["description"],
-                llm_config=llm_config,
-                code_execution_config=False,
-                function_map=None,
-                human_input_mode=agent_config["human_input_mode"],
-            )
-            agents[agent_name] = agent
+        Args:
+            text (str): The input text to be limited.
 
-        return agents
-
-    def limit_token_length(self, text):
-        """Limit the token length to avoid exceeding the LLM token limit."""
+        Returns:
+            str: The text limited to the maximum token length.
+        """
         indicator = " [truncated]"
 
         encoding = tiktoken.encoding_for_model(config.LLM_MODEL)
@@ -104,9 +92,12 @@ class iExplain:
         text = encoding.decode(encoded_text)
         return text
 
-    def read_logs(self):
-        """Read the log entries from the log directory."""
+    def read_logs(self) -> List[str]:
+        """Read the log entries from the log directory.
 
+        Returns:
+            List[str]: A list of log entries.
+        """
         logs = []
         for log_file in os.listdir(config.LOGS_PATH):
             if log_file.endswith(".json"):
@@ -120,9 +111,12 @@ class iExplain:
 
         return logs
 
-    def read_metadata(self):
-        """Read the metadata from the metadata directory."""
+    def read_metadata(self) -> List[str]:
+        """Read the metadata from the metadata directory.
 
+        Returns:
+            List[str]: A list of metadata entries.
+        """
         metadata = []
         for metadata_file in os.listdir(config.METADATA_PATH):
             if metadata_file.endswith(".json"):
@@ -136,17 +130,12 @@ class iExplain:
 
         return metadata
 
-    def run(self):
-        """Run the iExplain framework."""
+    def run_v1(self):
+        """Run the iExplain framework version 1."""
         self.logs = self.read_logs()
         self.metadata = self.read_metadata()
         self.combined_logs = "\n".join(self.logs)
         self.combined_metadata = "\n".join(self.metadata)
-
-        self.initiate_conversation()
-
-    def initiate_conversation(self):
-        """Initiate the conversation by asking for event and metadata summaries."""
 
         # Start by summarizing the metadata
         metadata_summary = self.agents["ModeratorAgent"].initiate_chats(
@@ -188,23 +177,8 @@ class iExplain:
             ]
         )[-1].summary
 
-
-    def explain(self, files):
-        """Initiate the explanation process based on the provided files.
-
-        The explanation process involves the following steps:
-        1. For each file, read the content and decide which agent should process it.
-        2. Route the content to the appropriate agent for analysis.
-        3. Generate an explanation based on the analyzed data.
-        4. Evaluate the quality of the explanation.
-        5. Provide the final explanation to the user.
-        6. Enable the user to request further explanations or details.
-
-        Args:
-            files (list): List of file paths to be explained.
-
-        """
-
+    def run_v2(self):
+        """Run the iExplain framework version 2."""
         groupchat = GroupChat(
             agents=[
                 self.agents["UserProxyAgent"], 
@@ -234,8 +208,37 @@ class iExplain:
             message=task
         )
 
+    def run_v3(self):
+        """Run the iExplain framework version 3."""
+
+        # Create a local command line code executor.
+        executor = LocalCommandLineCodeExecutor(
+            timeout=10,  # Timeout for each code execution in seconds.
+            work_dir="groupchat"
+        )
+
+        groupchat = GroupChat(
+            agents=[
+                self.agents["user_proxy"],
+                self.agents["code_executor"],
+                self.agents["logparser"],
+            ],
+            messages=[],
+            max_round=25,
+            send_introductions=True
+        )
+
+        manager = GroupChatManager(
+            groupchat=groupchat, 
+            llm_config={"config_list": self.config_list}
+        )
+
+        self.agents["user_proxy"].initiate_chat(
+            self.agents["manager"],
+            message="Parse the logs in ../data/logs"
+        )
 
 if __name__ == '__main__':
     iexplain = iExplain()
-    # iexplain.run()
-    iexplain.explain(["logs", "metadata"])
+    # iexplain.run_v1()
+    iexplain.run_v2()
