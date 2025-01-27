@@ -92,121 +92,6 @@ class iExplain:
         text = encoding.decode(encoded_text)
         return text
 
-    def read_logs(self) -> List[str]:
-        """Read the log entries from the log directory.
-
-        Returns:
-            List[str]: A list of log entries.
-        """
-        logs = []
-        for log_file in os.listdir(config.LOGS_PATH):
-            if log_file.endswith(".json"):
-                with open(config.LOGS_PATH / log_file, "r") as f:
-                    logs.append(json.load(f))
-            elif any(log_file.endswith(fmt) for fmt in self.plain_text_formats):
-                with open(config.LOGS_PATH / log_file, "r") as f:
-                    logs.append(f.read())
-            else:
-                print(f"Unsupported file format: {log_file}")
-
-        return logs
-
-    def read_metadata(self) -> List[str]:
-        """Read the metadata from the metadata directory.
-
-        Returns:
-            List[str]: A list of metadata entries.
-        """
-        metadata = []
-        for metadata_file in os.listdir(config.METADATA_PATH):
-            if metadata_file.endswith(".json"):
-                with open(config.METADATA_PATH / metadata_file, "r") as f:
-                    metadata.append(json.load(f))
-            elif any(metadata_file.endswith(fmt) for fmt in self.plain_text_formats):
-                with open(config.METADATA_PATH / metadata_file, "r") as f:
-                    metadata.append(f.read())
-            else:
-                print(f"Unsupported file format: {metadata_file}")
-
-        return metadata
-
-    def run_v1(self):
-        """Run the iExplain framework version 1."""
-        self.logs = self.read_logs()
-        self.metadata = self.read_metadata()
-        self.combined_logs = "\n".join(self.logs)
-        self.combined_metadata = "\n".join(self.metadata)
-
-        # Start by summarizing the metadata
-        metadata_summary = self.agents["ModeratorAgent"].initiate_chats(
-            [
-                {
-                    "recipient": self.agents["MetadataParserAgent"],
-                    "message": "Please summarize the following metadata:\n\n" + self.combined_metadata,
-                    "clear_history": False,
-                    "max_turns": 1,
-                    "summary_method": "last_msg"
-                }
-            ]
-        )[-1].summary
-
-        # Summarizing logs
-        log_message = f"Here are some logs with the following metadata:\n\n{metadata_summary}\n\n{self.combined_logs}"
-        event_log_summary = self.agents["ModeratorAgent"].initiate_chats(
-            [
-                {
-                    "recipient": self.agents["LogAnalyzerAgent"],
-                    "message": log_message,
-                    "clear_history": False,
-                    "max_turns": 1,
-                    "summary_method": "last_msg"
-                }
-            ]
-        )[-1].summary
-
-        # ExplanationGeneratorAgent generates explanations based on the summaries
-        explanation = self.agents["ModeratorAgent"].initiate_chats(
-            [
-                {
-                    "recipient": self.agents["ExplanationAgent"],
-                    "message": f"Please generate an explanation based on the following summaries:\n\nMetadata Summary:\n{metadata_summary}\n\nEvent Log Summary:\n{event_log_summary}",
-                    "clear_history": False,
-                    "max_turns": 1,
-                    "summary_method": "last_msg"
-                }
-            ]
-        )[-1].summary
-
-    def run_v2(self):
-        """Run the iExplain framework version 2."""
-        groupchat = GroupChat(
-            agents=[
-                self.agents["UserProxyAgent"], 
-                self.agents["InputAgent"],
-                self.agents["AnalyzerAgent"],
-                self.agents["CoderAgent"], 
-                self.agents["CodeExecutorAgent"],
-                self.agents["CriticAgent"],
-                self.agents["ExplanationAgent"],
-                self.agents["EvaluatorAgent"],
-                self.agents["RetrieveUserProxyAgent"]
-            ], 
-            messages=[], 
-            max_round=25,
-            send_introductions=True
-        )
-
-        manager = GroupChatManager(
-            groupchat=groupchat, 
-            llm_config={"config_list": self.config_list}
-        )
-
-        task = "Analyze the files in '../data/logs' and '../data/metadata' to generate an explanation."
-
-        self.agents["UserProxyAgent"].initiate_chat(
-            manager,
-            message=task
-        )
 
     def run_v3(self):
         """Run the iExplain framework version 3."""
@@ -231,7 +116,6 @@ class iExplain:
         )
 
         self.agents["user_proxy_agent"].initiate_chat(
-        # self.agents["code_executor_agent"].initiate_chat(
             manager,
             message="Look at the logs in './logs/'. List, read, and parse them."
         )
