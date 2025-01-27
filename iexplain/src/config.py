@@ -36,13 +36,6 @@ class Config:
         # self.LLM_MODEL = "qwen2.5:0.5b"
         # self.LLM_MODEL = "gemma2:2b-instruct-q3_K_S"
         self.LLM_API_KEY = os.environ.get("OPENAI_API_KEY")
-        self.use_case_context = "A company is using an edge-cloud computing infrastructure to process data from IoT devices spread across multiple locations. The primary intent is to optimize energy consumption across the infrastructure while ensuring data is processed efficiently and sustainably."
-        self.system_prompt =	"""
-You are a helpful assistant that describes and explains adaptations made in the edge-cloud computing infrastructure based on the available information.
-You will be provided with a list of intents, and a list of adaptations.
-List the intents, and list the adaptations under each of the intents.
-Under each adaptation, explain why the adaptation was made.
-"""
 
         self._init_paths()
 
