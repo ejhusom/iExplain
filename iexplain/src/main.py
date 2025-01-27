@@ -17,8 +17,11 @@ import json
 import ollama
 import openai
 import tiktoken
+import chromadb
+import yaml
 
 from autogen import ConversableAgent, GroupChat, GroupChatManager, AssistantAgent, UserProxyAgent
+from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
 from config import config
@@ -65,107 +68,41 @@ class iExplain:
         else:
             raise ValueError("Invalid LLM service specified in config.")
 
-        # Agent for receiving input and routing it to the correct agent
-        # self.group_chat_manager = GroupChatManager(
-        #     name="GroupChatManager",
-        #     system_message="You are the group chat manager. You receive input and route it to the correct agent.",
-        #     description="I receive input and route it to the correct agent.",
-        #     llm_config={"config_list": self.config_list},
-        #     code_execution_config=False,
-        #     function_map=None,
-        #     human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
-        # )
+        self.agents = self.load_agents_from_config()
 
-        # Agent for collecting and summarizing metadata
-        self.metadata_collector = ConversableAgent(
-            name="MetadataParserAgent",
-            system_message="Collect and summarize metadata from the system.",
-            description="I collect and summarize metadata from the system.",
-            llm_config={"config_list": self.config_list},
-            code_execution_config=False,
-            function_map=None,
-            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
-        )
+    def load_agents_from_config(self):
+        """Load agents from the YAML configuration file."""
+        with open("src/agents.yaml", "r") as file:
+            agents_config = yaml.safe_load(file)
 
-        self.log_analyzer = ConversableAgent(
-            name="LogAnalyzerAgent",
-            system_message="""You analyze system logs to identify patterns and relationships. Your tasks:
-            1. Identify the structure and format of the logs
-            2. Group related events based on available identifiers (timestamps, IDs, etc.)
-            3. Detect sequences of related events
-            4. Identify critical or anomalous patterns
-            
-            For any log format, focus on:
-            - Temporal patterns (when events occur)
-            - Entity relationships (which components/systems are involved)
-            - Event severity and types
-            - Error propagation patterns""",
-            description="I analyze raw log data to extract meaningful patterns and event sequences.",
-            llm_config={"config_list": self.config_list},
-            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
-        )
+        agents = {}
+        for agent_name, agent_config in agents_config.items():
+            llm_config = {"config_list": self.config_list} if agent_config["llm_config"] == "default" else agent_config["llm_config"]
+            agent = ConversableAgent(
+                name=agent_name,
+                system_message=agent_config["system_message"],
+                description=agent_config["description"],
+                llm_config=llm_config,
+                code_execution_config=False,
+                function_map=None,
+                human_input_mode=agent_config["human_input_mode"],
+            )
+            agents[agent_name] = agent
 
-        self.context_provider = ConversableAgent(
-            name="ContextProviderAgent",
-            system_message="""You provide system and operational context for log events. Your tasks:
-            1. Interpret error messages and system events
-            2. Explain relationships between different system components
-            3. Assess potential impacts of observed patterns
-            4. Distinguish between normal operations and potential issues
-            
-            Consider:
-            - The type of system generating the logs
-            - Common patterns in such systems
-            - Potential implications of different event types
-            - Relationships between different components""",
-            description="I provide technical and operational context for system events.",
-            llm_config={"config_list": self.config_list},
-            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
-        )
+        return agents
 
-        self.explanation_generator = ConversableAgent(
-            name="ExplanationAgent",
-            system_message="""Generate clear, structured explanations of system events at multiple levels:
-            1. Technical Details: What exactly happened in the system
-            2. System Impact: How these events affect system operation
-            3. Operational Context: What this means for system management
-            4. Recommendations: Suggested actions or monitoring needs
-            
-            Create explanations that:
-            - Connect related events into coherent narratives
-            - Highlight important patterns and their implications
-            - Scale detail based on the audience (technical vs operational)
-            - Provide actionable insights""",
-            description="I create multi-level explanations of system events.",
-            llm_config={"config_list": self.config_list},
-            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
-        )
+    def limit_token_length(self, text):
+        """Limit the token length to avoid exceeding the LLM token limit."""
+        indicator = " [truncated]"
 
-        self.evaluator = ConversableAgent(
-            name="EvaluatorAgent",
-            system_message="Evaluate the quality of explanations based on relevance, correctness, and clarity. Score each explanation from 1 to 5.",
-            description="I evaluate the quality of explanations based on relevance, correctness, and clarity.",
-            llm_config={"config_list": self.config_list},
-            code_execution_config=False,
-            function_map=None,
-            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
-        )
-
-        self.moderator = ConversableAgent(
-            name="ModeratorAgent",
-            system_message="You are an AI-based moderator that makes plans for the whole group. When you get a task, break it down into sub-tasks, each to be performed by one of your 'partner agents'. You will get an introduction about what each of your partner agents can do. If you speak in the middle of two tasks, remember to repeat the key information you get from the previous speaker, so that the next speaker has sufficient context. You will also serve as the interface to the human proxy.",
-            description="I am an AI-based moderator that makes plans for the whole group and serves as the interface to the human proxy.",
-            llm_config={"config_list": self.config_list},
-            code_execution_config=False,
-            function_map=None,
-            human_input_mode="ALWAYS" if DEBUG_MODE else "NEVER",
-        )
-
-        self.human_proxy = ConversableAgent(
-            "human_proxy",
-            llm_config=False,  # no LLM used for human proxy
-            human_input_mode="ALWAYS",  # always ask for human input
-        )
+        encoding = tiktoken.encoding_for_model(config.LLM_MODEL)
+        encoded_text = encoding.encode(text)
+        encoded_indicator = encoding.encode(indicator)
+        if len(encoded_text) > self.max_context_length:
+            encoded_text = encoded_text[:self.max_context_length - len(encoded_indicator)]
+            encoded_text += encoded_indicator
+        text = encoding.decode(encoded_text)
+        return text
 
     def read_logs(self):
         """Read the log entries from the log directory."""
@@ -199,19 +136,6 @@ class iExplain:
 
         return metadata
 
-    def limit_token_length(self, text):
-        """Limit the token length to avoid exceeding the LLM token limit."""
-        indicator = " [truncated]"
-
-        encoding = tiktoken.encoding_for_model(config.LLM_MODEL)
-        encoded_text = encoding.encode(text)
-        encoded_indicator = encoding.encode(indicator)
-        if len(encoded_text) > self.max_context_length:
-            encoded_text = encoded_text[:self.max_context_length - len(encoded_indicator)]
-            encoded_text += encoded_indicator
-        text = encoding.decode(encoded_text)
-        return text
-
     def run(self):
         """Run the iExplain framework."""
         self.logs = self.read_logs()
@@ -225,10 +149,10 @@ class iExplain:
         """Initiate the conversation by asking for event and metadata summaries."""
 
         # Start by summarizing the metadata
-        metadata_summary = self.moderator.initiate_chats(
+        metadata_summary = self.agents["ModeratorAgent"].initiate_chats(
             [
                 {
-                    "recipient": self.metadata_collector,
+                    "recipient": self.agents["MetadataParserAgent"],
                     "message": "Please summarize the following metadata:\n\n" + self.combined_metadata,
                     "clear_history": False,
                     "max_turns": 1,
@@ -238,12 +162,11 @@ class iExplain:
         )[-1].summary
 
         # Summarizing logs
-        # log_message = self.limit_token_length(f"Here are some logs with the following metadata:\n\n{metadata_summary}\n\n{self.combined_logs}")
         log_message = f"Here are some logs with the following metadata:\n\n{metadata_summary}\n\n{self.combined_logs}"
-        event_log_summary = self.moderator.initiate_chats(
+        event_log_summary = self.agents["ModeratorAgent"].initiate_chats(
             [
                 {
-                    "recipient": self.log_analyzer,
+                    "recipient": self.agents["LogAnalyzerAgent"],
                     "message": log_message,
                     "clear_history": False,
                     "max_turns": 1,
@@ -253,10 +176,10 @@ class iExplain:
         )[-1].summary
 
         # ExplanationGeneratorAgent generates explanations based on the summaries
-        explanation = self.moderator.initiate_chats(
+        explanation = self.agents["ModeratorAgent"].initiate_chats(
             [
                 {
-                    "recipient": self.explanation_generator,
+                    "recipient": self.agents["ExplanationAgent"],
                     "message": f"Please generate an explanation based on the following summaries:\n\nMetadata Summary:\n{metadata_summary}\n\nEvent Log Summary:\n{event_log_summary}",
                     "clear_history": False,
                     "max_turns": 1,
@@ -282,27 +205,37 @@ class iExplain:
 
         """
 
-        # Create an AssistantAgent instance named "assistant"
-        assistant = AssistantAgent(
-            name="assistant",
-            llm_config={"config_list": self.config_list},
-        )
-        # create a UserProxyAgent instance named "user_proxy"
-        user_proxy = UserProxyAgent(
-            name="user_proxy",
-            human_input_mode="ALWAYS"
+        groupchat = GroupChat(
+            agents=[
+                self.agents["UserProxyAgent"], 
+                self.agents["InputAgent"],
+                self.agents["AnalyzerAgent"],
+                self.agents["CoderAgent"], 
+                self.agents["CodeExecutorAgent"],
+                self.agents["CriticAgent"],
+                self.agents["ExplanationAgent"],
+                self.agents["EvaluatorAgent"],
+                self.agents["RetrieveUserProxyAgent"]
+            ], 
+            messages=[], 
+            max_round=25,
+            send_introductions=True
         )
 
-        task = "Start a conversation."
+        manager = GroupChatManager(
+            groupchat=groupchat, 
+            llm_config={"config_list": self.config_list}
+        )
 
-        user_proxy.initiate_chat(
-            assistant,
+        task = "Analyze the files in '../data/logs' and '../data/metadata' to generate an explanation."
+
+        self.agents["UserProxyAgent"].initiate_chat(
+            manager,
             message=task
         )
 
 
 if __name__ == '__main__':
     iexplain = iExplain()
-    iexplain.explain(3)
-
-
+    # iexplain.run()
+    iexplain.explain(["logs", "metadata"])
