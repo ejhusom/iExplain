@@ -28,14 +28,20 @@ class Config:
         self.WORK_DIR = Path("./work_dir")
 
         # User-defined parameters:
-        # self.LLM_SERVICE = "openai"
-        # self.LLM_MODEL = "gpt-4o-mini"
-        self.LLM_SERVICE = "ollama"
-        self.LLM_MODEL = "llama3.2:1b"
+        self.LLM_SERVICE = "openai"
+        self.LLM_MODEL = "gpt-4o-mini"
+        # self.LLM_SERVICE = "ollama"
+        # self.LLM_MODEL = "llama3.2:1b"
         # self.LLM_MODEL = "deepseek-r1:1.5b"
         # self.LLM_MODEL = "qwen2.5:0.5b"
         # self.LLM_MODEL = "gemma2:2b-instruct-q3_K_S"
         self.LLM_API_KEY = os.environ.get("OPENAI_API_KEY")
+
+        self.config_list = [{
+            "model": self.LLM_MODEL,
+            "api_key": self.LLM_API_KEY,
+            "api_type": self.LLM_SERVICE,
+        }]
 
         self._init_paths()
 

@@ -25,8 +25,7 @@ from autogen.coding import LocalCommandLineCodeExecutor
 from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProxyAgent
 
 from config import config
-from tools import parse_logs
-from agents import get_agents
+from get_agents import get_agents
 
 DEBUG_MODE = False
 
@@ -92,7 +91,7 @@ class iExplain:
         return text
 
 
-    def run_v3(self):
+    def run(self):
         """Run the iExplain framework version 3."""
 
         groupchat = GroupChat(
@@ -116,10 +115,9 @@ class iExplain:
 
         self.agents["user_proxy_agent"].initiate_chat(
             manager,
-            message="Look at the logs in './logs/'. List, read, and parse them."
+            message="Look at the log files in './logs/'. List, read, and parse the log files."
         )
 
 if __name__ == '__main__':
     iexplain = iExplain()
-    # iexplain.run_v1()
-    iexplain.run_v3()
+    iexplain.run()
