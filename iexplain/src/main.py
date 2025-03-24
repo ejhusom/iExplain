@@ -118,6 +118,79 @@ class iExplain:
             message="Look at the log files in './logs/'. List, read, and parse the log files."
         )
 
+    def run_demo(self, intent=None, log_files=None):
+        """Run the iExplain framework.
+
+        Args:
+            intent (str, optional): Intent in natural language or TMF format.
+                                   If None, will look for intents in the data directory.
+            log_files (list, optional): List of log files to analyze.
+                                       If None, will use all logs in the logs directory.
+        """
+        # Initialize agents if not already initialized
+        if not hasattr(self, 'agents'):
+            self.agents = get_agents(self.config_list)
+
+        # Set up the group chat with the new agents
+        groupchat = GroupChat(
+            agents=[
+                self.agents["user_proxy_agent"],
+                self.agents["intent_parser_agent"],     # New
+                self.agents["input_agent"],
+                self.agents["log_parser_agent"],
+                self.agents["log_analysis_agent"],      # New
+                self.agents["causal_inference_agent"],  # New
+                self.agents["explanation_generator_agent"], # New
+                self.agents["code_writer_agent"],
+                self.agents["code_executor_agent"],
+                self.agents["data_reader_agent"],
+            ],
+            messages=[],
+            max_round=60,
+            send_introductions=True
+        )
+
+        manager = GroupChatManager(
+            groupchat=groupchat,
+            llm_config={"config_list": self.config_list}
+        )
+
+        # Formulate the initial message based on provided intent and log files
+        initial_message = "I need to explain how the system has addressed a user intent."
+
+        if intent:
+            initial_message += f"\n\nThe intent is: {intent}"
+        else:
+            initial_message += "\n\nPlease look for intent files in the './data/metadata/' directory."
+
+        if log_files:
+            initial_message += f"\n\nAnalyze the following log files: {', '.join(log_files)}"
+        else:
+            initial_message += "\n\nAnalyze all log files in the './data/logs/' directory."
+
+        initial_message += """
+
+        Follow this workflow:
+        1. Parse and interpret the intent
+        2. Identify relevant log entries
+        3. Analyze logs to find actions related to the intent
+        4. Determine causality between actions and outcomes
+        5. Generate a clear explanation
+        6. Create an HTML dashboard with the explanation
+
+        The final output should be an explanation of how the system interpreted and acted upon the intent.
+        """
+
+        # Start the conversation
+        self.agents["user_proxy_agent"].initiate_chat(
+            manager,
+            message=initial_message
+        )
+
+        # Return the path to the generated dashboard
+        # This would need to be captured from the agent conversation results
+        return "Path to explanation dashboard"  # Placeholder
+
 if __name__ == '__main__':
     iexplain = iExplain()
-    iexplain.run()
+    iexplain.run_demo()
