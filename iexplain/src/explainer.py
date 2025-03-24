@@ -135,7 +135,7 @@ Please follow this simple process:
 
 Structure the explanation as a JSON with these fields:
 - timestamp
-- intent (id, description, threshold)
+- intent (id, description)
 - analysis (metrics from logs)
 - recommendations (list of action/reason pairs)
 - outcome
@@ -159,7 +159,7 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
         
         return explanation, output_file
     
-    def _extract_explanation_from_result(self, result, nl_intent: str, intent_id: str, structured_intent: str, intent_description: str) -> Dict[str, Any]:
+    def _extract_explanation_from_result(self, result, nl_intent: str, structured_intent: str, intent_id: str, intent_description: str) -> Dict[str, Any]:
         """
         Extract the structured explanation from the agent conversation result.
         
@@ -201,8 +201,7 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
             'structured_intent': structured_intent,
             'intent': {
                 'id': intent_id,
-                'description': intent_description,
-                'threshold': 0
+                'description': intent_description
             },
             'analysis': {
                 'total_logs_analyzed': 0

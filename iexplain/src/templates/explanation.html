@@ -55,16 +55,6 @@
                         </div>
                         <div class="card-body">
                             <h5>{{ explanation.intent.description }}</h5>
-                            {% if explanation.intent.threshold %}
-                            <p>
-                                <strong>Threshold:</strong> {{ explanation.intent.threshold }}
-                                {% if 'avg_startup_time' in explanation.analysis %}
-                                seconds
-                                {% else %}
-                                ms
-                                {% endif %}
-                            </p>
-                            {% endif %}
                             
                             <div class="outcome-container mt-4">
                                 <h5>Outcome</h5>
@@ -101,88 +91,7 @@
                             Analysis Results
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                {% if 'avg_startup_time' in explanation.analysis %}
-                                <!-- VM Startup metrics -->
-                                <div class="col-md-6">
-                                    <div class="card mb-3">
-                                        <div class="card-body text-center">
-                                            <h3>{{ explanation.analysis.avg_startup_time }} sec</h3>
-                                            <p class="text-muted">Average VM Startup Time</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% if 'threshold_violation_rate' in explanation.analysis %}
-                                <div class="col-md-6">
-                                    <div class="card mb-3">
-                                        <div class="card-body text-center">
-                                            <h3>{{ explanation.analysis.threshold_violation_rate }}%</h3>
-                                            <p class="text-muted">Threshold Violation Rate</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% elif 'avg_response_time' in explanation.analysis %}
-                                <!-- API response metrics -->
-                                <div class="col-md-6">
-                                    <div class="card mb-3">
-                                        <div class="card-body text-center">
-                                            <h3>{{ explanation.analysis.avg_response_time }} ms</h3>
-                                            <p class="text-muted">Average Response Time</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% if 'max_response_time' in explanation.analysis %}
-                                <div class="col-md-6">
-                                    <div class="card mb-3">
-                                        <div class="card-body text-center">
-                                            <h3>{{ explanation.analysis.max_response_time }} ms</h3>
-                                            <p class="text-muted">Max Response Time</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
-                                {% endif %}
-                            </div>
-                            
-                            <table class="table table-bordered">
-                                <tbody>
-                                    {% if 'total_logs_analyzed' in explanation.analysis %}
-                                    <tr>
-                                        <th>Total Log Entries Analyzed</th>
-                                        <td>{{ explanation.analysis.total_logs_analyzed }}</td>
-                                    </tr>
-                                    {% endif %}
-                                    
-                                    {% if 'vm_startups_analyzed' in explanation.analysis %}
-                                    <tr>
-                                        <th>VM Startups Analyzed</th>
-                                        <td>{{ explanation.analysis.vm_startups_analyzed }}</td>
-                                    </tr>
-                                    {% endif %}
-                                    
-                                    {% if 'relevant_api_calls' in explanation.analysis %}
-                                    <tr>
-                                        <th>Relevant API Calls</th>
-                                        <td>{{ explanation.analysis.relevant_api_calls }}</td>
-                                    </tr>
-                                    {% endif %}
-                                    
-                                    {% if 'calls_exceeding_threshold' in explanation.analysis %}
-                                    <tr>
-                                        <th>Calls Exceeding Threshold</th>
-                                        <td>{{ explanation.analysis.calls_exceeding_threshold }}</td>
-                                    </tr>
-                                    {% endif %}
-                                    
-                                    {% if 'threshold_violation_rate' in explanation.analysis %}
-                                    <tr>
-                                        <th>Threshold Violation Rate</th>
-                                        <td>{{ explanation.analysis.threshold_violation_rate }}%</td>
-                                    </tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
+                            <p>Placeholder for the analysis results</p>
                         </div>
                     </div>
                     
