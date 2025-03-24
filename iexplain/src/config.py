@@ -23,6 +23,7 @@ class Config:
         # PATHS
         self.DATA_PATH = Path("./data")
         self.LOGS_PATH = self.DATA_PATH / "logs"
+        self.INTENTS_PATH = self.DATA_PATH / "intents"
         self.METADATA_PATH = self.DATA_PATH / "metadata"
         self.OUTPUT_PATH = Path("./output")
         self.WORK_DIR = Path("./work_dir")
@@ -50,6 +51,7 @@ class Config:
         directories = [
             self.DATA_PATH,
             self.LOGS_PATH,
+            self.INTENTS_PATH,
             self.METADATA_PATH,
             self.OUTPUT_PATH
         ]

@@ -36,13 +36,28 @@ def get_agents(config_list = config.config_list):
 
     tools = get_tools()
 
-    for tool_name, tool_details in tools.items():
-        register_function(
-            tool_details["function"],
-            caller=agents[tool_details["caller"]],
-            executor=agents[tool_details["executor"]],
-            name=tool_details["name"],
-            description=tool_details["description"]
-        )
+    # for tool_name, tool_details in tools.items():
+    #     breakpoint()
+    #     register_function(
+    #         tool_details["function"],
+    #         caller=agents[tool_details["caller"]],
+    #         executor=agents[tool_details["executor"]],
+    #         name=tool_details["name"],
+    #         description=tool_details["description"]
+    #     )
+
+    # Use another method for registering tools, by using the function register_for_llm like this: 
+    # agent.register_for_llm(name="calculator", description="A simple calculator")(calculator). 
+    # This method is used in the agents themselves, and is more flexible than the method used above. Iterate over the agents and register the tools for each agent.
+    # for agent_name, agent in agents.items():
+    #     for tool_name, tool_details in tools.items():
+    #         if tool_details["caller"] == agent_name:
+    #             agent.register_for_llm(name=tool_details["name"], description=tool_details["description"])(tool_details["function"])
+
+
+    # for agent in agents:
+    #     print(agent)
+    #     print(agents[agent].function_map)
+    # breakpoint()
 
     return agents
