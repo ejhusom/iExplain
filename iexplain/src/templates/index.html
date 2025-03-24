@@ -45,6 +45,11 @@
                                                 <div class="natural-language">
                                                     <strong>Original request:</strong>
                                                     <p>{{ intent.natural_language }}</p>
+                                                    <details>
+                                                        <!-- Showing the .ttl file for the intent-->
+                                                        <summary>Structured representation</summary>
+                                                        <pre>{{ intent.structured }}</pre>
+                                                    </details>
                                                 </div>
                                                 {% endif %}
                                             </div>

@@ -39,6 +39,11 @@
                             <div class="natural-language">
                                 {{ explanation.natural_language_intent }}
                             </div>
+                            <details>
+                                <!-- Showing the .ttl file for the intent-->
+                                <summary>Structured representation</summary>
+                                <pre>{{ explanation.structured_intent }}</pre>
+                            </details>
                         </div>
                     </div>
                     {% endif %}

@@ -64,7 +64,7 @@ class iExplain:
         
         # Read the TTL intent file
         with open(ttl_file, 'r') as f:
-            intent_content = f.read()
+            structured_intent = f.read()
         
         # Read natural language intent if available
         nl_intent = ""
@@ -74,6 +74,7 @@ class iExplain:
                     nl_intent = f.read()
             except Exception as e:
                 print(f"Error reading natural language intent: {e}")
+
         
         # Create the log file paths
         log_file_paths = [str(config.LOGS_PATH / "openstack" / log_file) for log_file in log_files]
@@ -113,7 +114,7 @@ I need to explain how a system has addressed a user's intent.
 
 The intent is specified in TMF format:
 ```
-{intent_content}
+{structured_intent}
 ```
 
 {f"The original natural language intent was: {nl_intent}" if nl_intent else ""}
@@ -151,14 +152,14 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
         )
         
         # Extract the explanation from the conversation
-        explanation = self._extract_explanation_from_result(result, nl_intent, intent_id, intent_description)
+        explanation = self._extract_explanation_from_result(result, nl_intent, structured_intent, intent_id, intent_description)
         
         # Save the explanation to a file
         output_file = self._save_explanation_to_file(explanation)
         
         return explanation, output_file
     
-    def _extract_explanation_from_result(self, result, nl_intent: str, intent_id: str, intent_description: str) -> Dict[str, Any]:
+    def _extract_explanation_from_result(self, result, nl_intent: str, intent_id: str, structured_intent: str, intent_description: str) -> Dict[str, Any]:
         """
         Extract the structured explanation from the agent conversation result.
         
@@ -177,6 +178,7 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
                 explanation = parse_escaped_json(json_matches[0])
                 # Add natural language intent if available
                 explanation['natural_language_intent'] = nl_intent
+                explanation['structured_intent'] = structured_intent
                 
                 # Add or update basic intent info
                 explanation.setdefault('intent', {})
@@ -196,6 +198,7 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
         explanation = {
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             'natural_language_intent': nl_intent,
+            'structured_intent': structured_intent,
             'intent': {
                 'id': intent_id,
                 'description': intent_description,

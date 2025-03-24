@@ -51,13 +51,20 @@ def get_available_intents():
             continue
         
         # Get natural language content if available
-        nl_content = ""
+        nl_intent = ""
         if nl_file.exists():
             try:
                 with open(nl_file, 'r') as f:
-                    nl_content = f.read()
+                    nl_intent = f.read()
             except Exception as e:
                 print(f"Error reading natural language intent: {e}")
+
+        if ttl_file.exists():
+            try:
+                with open(ttl_file, 'r') as f:
+                    structured_intent = f.read()
+            except Exception as e:
+                print(f"Error reading TTL file: {e}")
         
         # Get metadata for this intent if available
         description = item
@@ -74,7 +81,8 @@ def get_available_intents():
             'description': description,
             'created_date': created_date,
             'id': intent_id,
-            'natural_language': nl_content
+            'natural_language': nl_intent,
+            'structured': structured_intent
         })
     
     return intents
