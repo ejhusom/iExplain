@@ -1,20 +1,20 @@
 #!/bin/bash
-# Setup script for iExplain test infrastructure
+# Setup script for iExplain test infrastructure with updated directory structure
 
 # Create directory structure
-mkdir -p iexplain/data/intents/natural_language
-mkdir -p iexplain/data/logs/openstack
-mkdir -p iexplain/data/metadata
-mkdir -p iexplain/output
-mkdir -p iexplain/templates
+mkdir -p data/intents/nova_api_latency_intent
+mkdir -p data/intents/vm_startup_time_intent
+mkdir -p data/logs/openstack
+mkdir -p data/metadata
+mkdir -p output
+mkdir -p templates
 
-# Create the natural language intent file
-cat > iexplain/data/intents/natural_language/nova_api_latency_intent.txt << 'EOL'
+# Create the first intent files
+cat > data/intents/nova_api_latency_intent/nova_api_latency_intent.txt << 'EOL'
 I need to improve the response time of our OpenStack Nova API service. Right now, users are experiencing delays when retrieving server details. I want to ensure that the API consistently responds in under 250 milliseconds, particularly for the GET requests to the servers/detail endpoint. Can you analyze our system and implement necessary changes to meet this performance target?
 EOL
 
-# Create the TMF intent file
-cat > iexplain/data/intents/nova_api_latency_intent.ttl << 'EOL'
+cat > data/intents/nova_api_latency_intent/nova_api_latency_intent.ttl << 'EOL'
 @prefix icm:  <http://tio.models.tmforum.org/tio/v3.6.0/IntentCommonModel/> .
 @prefix dct:  <http://purl.org/dc/terms/> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
@@ -58,13 +58,12 @@ iexp:RE1 a icm:ReportingExpectation ;
 .
 EOL
 
-# Create second natural language intent file
-cat > iexplain/data/intents/natural_language/vm_startup_time_intent.txt << 'EOL'
+# Create second intent files
+cat > data/intents/vm_startup_time_intent/vm_startup_time_intent.txt << 'EOL'
 My team has been noticing that virtual machine startup times are taking too long. We need to reduce the time it takes to provision a new VM instance to under 30 seconds. This is causing delays in our continuous integration pipeline. Please focus on optimizing the VM creation process in our OpenStack environment.
 EOL
 
-# Create second TMF intent file
-cat > iexplain/data/intents/vm_startup_time_intent.ttl << 'EOL'
+cat > data/intents/vm_startup_time_intent/vm_startup_time_intent.ttl << 'EOL'
 @prefix icm:  <http://tio.models.tmforum.org/tio/v3.6.0/IntentCommonModel/> .
 @prefix dct:  <http://purl.org/dc/terms/> .
 @prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
@@ -107,17 +106,15 @@ iexp:RE2 a icm:ReportingExpectation ;
 .
 EOL
 
-# Create the mapping file
-cat > iexplain/data/intents/intent_mapping.json << 'EOL'
+# Create metadata file with descriptions
+cat > data/intents/intent_metadata.json << 'EOL'
 {
-  "nova_api_latency_intent.ttl": {
-    "natural_language_file": "natural_language/nova_api_latency_intent.txt",
+  "nova_api_latency_intent": {
     "description": "Improve Nova API response time",
     "created_date": "2023-05-01",
     "id": "I1"
   },
-  "vm_startup_time_intent.ttl": {
-    "natural_language_file": "natural_language/vm_startup_time_intent.txt",
+  "vm_startup_time_intent": {
     "description": "Reduce VM instance startup time",
     "created_date": "2023-05-02",
     "id": "I2"
@@ -126,7 +123,7 @@ cat > iexplain/data/intents/intent_mapping.json << 'EOL'
 EOL
 
 # Create sample log files
-cat > iexplain/data/logs/openstack/nova-api.log << 'EOL'
+cat > data/logs/openstack/nova-api.log << 'EOL'
 2017-05-16 00:00:00.008 25746 INFO nova.osapi_compute.wsgi.server [req-38101a0b-2096-447d-96ea-a692162415ae 113d3a99c3da401fbd62cc2caa5b96d2 54fadb412c4e40cdbaed9335e4c35a9e - - -] 10.11.10.1 "GET /v2/54fadb412c4e40cdbaed9335e4c35a9e/servers/detail HTTP/1.1" status: 200 len: 1893 time: 0.2477829
 2017-05-16 00:00:00.272 25746 INFO nova.osapi_compute.wsgi.server [req-9bc36dd9-91c5-4314-898a-47625eb93b09 113d3a99c3da401fbd62cc2caa5b96d2 54fadb412c4e40cdbaed9335e4c35a9e - - -] 10.11.10.1 "GET /v2/54fadb412c4e40cdbaed9335e4c35a9e/servers/detail HTTP/1.1" status: 200 len: 1893 time: 0.2577181
 2017-05-16 00:00:01.551 25746 INFO nova.osapi_compute.wsgi.server [req-55db2d8d-cdb7-4b4b-993b-429be84c0c3e 113d3a99c3da401fbd62cc2caa5b96d2 54fadb412c4e40cdbaed9335e4c35a9e - - -] 10.11.10.1 "GET /v2/54fadb412c4e40cdbaed9335e4c35a9e/servers/detail HTTP/1.1" status: 200 len: 1893 time: 0.2731631
@@ -146,7 +143,7 @@ cat > iexplain/data/logs/openstack/nova-api.log << 'EOL'
 2017-05-16 00:00:14.227 25746 INFO nova.osapi_compute.wsgi.server [req-7c98c92e-959e-4cac-89d3-1a9b5683be39 113d3a99c3da401fbd62cc2caa5b96d2 54fadb412c4e40cdbaed9335e4c35a9e - - -] 10.11.10.1 "GET /v2/54fadb412c4e40cdbaed9335e4c35a9e/servers/detail HTTP/1.1" status: 200 len: 1893 time: 0.2691371
 EOL
 
-cat > iexplain/data/logs/openstack/nova-compute.log << 'EOL'
+cat > data/logs/openstack/nova-compute.log << 'EOL'
 2017-05-16 00:00:04.500 2931 INFO nova.compute.manager [req-3ea4052c-895d-4b64-9e2d-04d64c4d94ab - - - - -] [instance: b9000564-fe1a-409b-b8cc-1e88b294cd1d] VM Started (Lifecycle Event)
 2017-05-16 00:00:36.562 2931 INFO nova.compute.manager [req-3ea4052c-895d-4b64-9e2d-04d64c4d94ab - - - - -] [instance: b9000564-fe1a-409b-b8cc-1e88b294cd1d] Instance spawned in 32.06 seconds
 2017-05-16 00:01:05.185 2931 INFO nova.virt.libvirt.imagecache [req-addc1839-2ed5-4778-b57e-5854eb7b8b09 - - - - -] image 0673dd71-34c5-4fbb-86c4-40623fbe45b4 at (/var/lib/nova/instances/_base/a489c868f0c37da93b76227c91bb03908ac0e742): checking
@@ -156,4 +153,4 @@ cat > iexplain/data/logs/openstack/nova-compute.log << 'EOL'
 2017-05-16 00:03:54.760 2931 INFO nova.compute.manager [req-7de12fc9-795d-4b64-9e2d-04d64c4d92bb - - - - -] [instance: d7200fed-fe1a-409b-b8cc-1e88b294ffcd] Instance spawned in 32.26 seconds
 EOL
 
-echo "Sample data files created!"
+echo "Directory structure and sample files created successfully!"

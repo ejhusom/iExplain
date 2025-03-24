@@ -10,6 +10,10 @@
             body { padding-top: 20px; }
             .header { margin-bottom: 30px; }
             .footer { margin-top: 50px; text-align: center; color: #666; }
+            .intent-card { cursor: pointer; transition: background-color 0.3s; }
+            .intent-card:hover { background-color: #f8f9fa; }
+            .intent-card.selected { background-color: #e9ecef; border-color: #0d6efd; }
+            .natural-language { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 10px 0; }
         </style>
     </head>
     <body>
@@ -29,13 +33,24 @@
                         <div class="card-body">
                             <form action="/explain" method="post">
                                 <div class="mb-3">
-                                    <label for="intent" class="form-label">Select Intent</label>
-                                    <select class="form-select" id="intent" name="intent" required>
-                                        <option value="">Choose an intent...</option>
+                                    <label class="form-label">Select Intent</label>
+                                    <input type="hidden" id="selected_intent" name="intent" value="">
+                                    <div class="intents-container">
                                         {% for intent in intents %}
-                                        <option value="{{ intent['ttl_file'] }}">{{ intent['ttl_file'] }}</option>
+                                        <div class="card mb-2 intent-card" data-intent-folder="{{ intent.folder }}">
+                                            <div class="card-body">
+                                                <h5 class="card-title">{{ intent.description }}</h5>
+                                                <h6 class="card-subtitle mb-2 text-muted">ID: {{ intent.id }} | Created: {{ intent.created_date }}</h6>
+                                                {% if intent.natural_language %}
+                                                <div class="natural-language">
+                                                    <strong>Original request:</strong>
+                                                    <p>{{ intent.natural_language }}</p>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
                                         {% endfor %}
-                                    </select>
+                                    </div>
                                 </div>
                                 
                                 <div class="mb-3">
@@ -53,7 +68,7 @@
                                     {% endfor %}
                                 </div>
                                 
-                                <button type="submit" class="btn btn-primary">Generate Explanation</button>
+                                <button type="submit" class="btn btn-primary" id="generate-btn" disabled>Generate Explanation</button>
                             </form>
                         </div>
                     </div>
@@ -79,13 +94,50 @@
         </div>
         
         <script>
+            // Select intent card
+            document.querySelectorAll('.intent-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    // Remove selection from all cards
+                    document.querySelectorAll('.intent-card').forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                    
+                    // Add selection to clicked card
+                    this.classList.add('selected');
+                    
+                    // Set the selected intent in the hidden input
+                    document.getElementById('selected_intent').value = this.dataset.intentFolder;
+                    
+                    // Enable the generate button if at least one log is selected
+                    checkGenerateButton();
+                });
+            });
+            
             // Select/deselect all logs
             document.getElementById('selectAll').addEventListener('change', function() {
                 const checkboxes = document.querySelectorAll('.log-checkbox');
                 checkboxes.forEach(checkbox => {
                     checkbox.checked = this.checked;
                 });
+                
+                // Check if we can enable the generate button
+                checkGenerateButton();
             });
+            
+            // Check log checkboxes
+            document.querySelectorAll('.log-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    checkGenerateButton();
+                });
+            });
+            
+            // Check if we can enable the generate button
+            function checkGenerateButton() {
+                const intentSelected = document.getElementById('selected_intent').value !== '';
+                const logsSelected = Array.from(document.querySelectorAll('.log-checkbox')).some(cb => cb.checked);
+                
+                document.getElementById('generate-btn').disabled = !(intentSelected && logsSelected);
+            }
             
             // Load recent explanations
             fetch('/api/explanations')

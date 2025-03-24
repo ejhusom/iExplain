@@ -1,0 +1,291 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""iExplain - Minimal Viable Service using a few key agents
+
+A simplified version of the iExplain framework using just a few core agents.
+"""
+import os
+import json
+import re
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Tuple, Any
+
+from autogen import GroupChat, GroupChatManager
+
+# Import from existing code
+sys.path.append(str(Path(__file__).parent))
+from config import config
+from get_agents import get_agents
+from utils import parse_escaped_json
+
+class iExplain:
+    """
+    A minimal implementation of the iExplain framework using just a few agents.
+    """
+    
+    def __init__(self):
+        """Initialize the minimal explainer with agents."""
+        
+        # Initialize agents - for the MVS, we just use 3 key agents
+        self.config_list = config.config_list
+        self.agents = get_agents(self.config_list)
+        
+        # Load intent metadata if available
+        self.intent_metadata = {}
+        metadata_file = config.INTENTS_PATH / "intent_metadata.json"
+        if metadata_file.exists():
+            try:
+                with open(metadata_file, 'r') as f:
+                    self.intent_metadata = json.load(f)
+            except Exception as e:
+                print(f"Error loading intent metadata: {e}")
+    
+    def explain(self, intent_folder: str, log_files: List[str]) -> Tuple[Dict[str, Any], str]:
+        """
+        Generate an explanation for an intent based on log files using agents.
+        
+        Args:
+            intent_folder (str): Name of the intent folder
+            log_files (List[str]): List of log file paths
+            
+        Returns:
+            Tuple[Dict[str, Any], str]: Explanation results and output file path
+        """
+        # Construct paths to the intent files
+        intent_dir = config.INTENTS_PATH / intent_folder
+        ttl_file = intent_dir / f"{intent_folder}.ttl"
+        nl_file = intent_dir / f"{intent_folder}.txt"
+        
+        # Check if files exist
+        if not ttl_file.exists():
+            raise FileNotFoundError(f"TTL file not found: {ttl_file}")
+        
+        # Read the TTL intent file
+        with open(ttl_file, 'r') as f:
+            intent_content = f.read()
+        
+        # Read natural language intent if available
+        nl_intent = ""
+        if nl_file.exists():
+            try:
+                with open(nl_file, 'r') as f:
+                    nl_intent = f.read()
+            except Exception as e:
+                print(f"Error reading natural language intent: {e}")
+        
+        # Create the log file paths
+        log_file_paths = [str(config.LOGS_PATH / "openstack" / log_file) for log_file in log_files]
+        
+        # Create a minimal group chat with just 3 essential agents:
+        # 1. intent_parser_agent - to understand the intent
+        # 2. log_analysis_agent - to analyze the logs
+        # 3. explanation_generator_agent - to create explanations
+        groupchat = GroupChat(
+            agents=[
+                self.agents["user_proxy_agent"],
+                self.agents["intent_parser_agent"],
+                self.agents["log_analysis_agent"],
+                self.agents["explanation_generator_agent"]
+            ],
+            messages=[],
+            max_round=10,  # Keep it simple with fewer rounds
+            send_introductions=True
+        )
+        
+        manager = GroupChatManager(
+            groupchat=groupchat,
+            llm_config={"config_list": self.config_list}
+        )
+        
+        # Get intent metadata if available
+        intent_description = "Unknown intent"
+        intent_id = "Unknown"
+        
+        if intent_folder in self.intent_metadata:
+            intent_description = self.intent_metadata[intent_folder].get('description', intent_description)
+            intent_id = self.intent_metadata[intent_folder].get('id', intent_id)
+        
+        # Create a prompt for the agents
+        prompt = f"""
+I need to explain how a system has addressed a user's intent.
+
+The intent is specified in TMF format:
+```
+{intent_content}
+```
+
+{f"The original natural language intent was: {nl_intent}" if nl_intent else ""}
+
+I need to analyze the following log files to determine if the intent was fulfilled:
+{', '.join(log_file_paths)}
+
+Please follow this simple process:
+1. Parse the intent to understand what the user wants
+2. Analyze the logs to see if the intent was met
+3. Generate a structured explanation with:
+   - Intent summary
+   - System interpretation
+   - Key actions taken (based on logs)
+   - Outcome (Success, Partial Success, Failure)
+   - Outcome explanation
+   - Influencing factors
+
+Structure the explanation as a JSON with these fields:
+- timestamp
+- intent (id, description, threshold)
+- analysis (metrics from logs)
+- recommendations (list of action/reason pairs)
+- outcome
+- outcome_explanation
+- influencing_factors (list)
+
+Keep the analysis focused on determining if the intent was fulfilled based on the logs.
+"""
+        
+        # Start the conversation
+        result = self.agents["user_proxy_agent"].initiate_chat(
+            manager,
+            message=prompt
+        )
+        
+        # Extract the explanation from the conversation
+        explanation = self._extract_explanation_from_result(result, nl_intent, intent_id, intent_description)
+        
+        # Save the explanation to a file
+        output_file = self._save_explanation_to_file(explanation)
+        
+        return explanation, output_file
+    
+    def _extract_explanation_from_result(self, result, nl_intent: str, intent_id: str, intent_description: str) -> Dict[str, Any]:
+        """
+        Extract the structured explanation from the agent conversation result.
+        
+        This function looks for JSON content in the conversation and parses it.
+        If no valid JSON is found, it creates a basic explanation structure.
+        """
+        
+        # Look for JSON in the conversation (between ```json and ```)
+        json_pattern = r'```json\s*([\s\S]*?)\s*```'
+        json_matches = re.findall(json_pattern, str(result))
+        
+        if json_matches:
+            print("Found JSON content in the result")
+            # Try to parse the JSON
+            try:
+                explanation = parse_escaped_json(json_matches[0])
+                # Add natural language intent if available
+                explanation['natural_language_intent'] = nl_intent
+                
+                # Add or update basic intent info
+                explanation.setdefault('intent', {})
+                if 'id' not in explanation['intent'] or not explanation['intent']['id']:
+                    explanation['intent']['id'] = intent_id
+                if 'description' not in explanation['intent'] or not explanation['intent']['description']:
+                    explanation['intent']['description'] = intent_description
+                
+                return explanation
+            except json.JSONDecodeError:
+                print(f"Error decoding JSON from result: {json_matches[0]}")
+        
+        # If no valid JSON found, look for explanation content in a more flexible way
+        messages = result.chat_history[::-1]
+        
+        # Default explanation structure
+        explanation = {
+            'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            'natural_language_intent': nl_intent,
+            'intent': {
+                'id': intent_id,
+                'description': intent_description,
+                'threshold': 0
+            },
+            'analysis': {
+                'total_logs_analyzed': 0
+            },
+            'recommendations': [
+                {
+                    'action': 'Improve system monitoring',
+                    'reason': 'Could not determine specific recommendations from logs'
+                }
+            ],
+            'outcome': 'Unknown',
+            'outcome_explanation': 'Could not determine outcome from logs',
+            'influencing_factors': ['Log analysis incomplete']
+        }
+        
+        # Find explanation content in messages from explanation_generator_agent
+        for msg in messages:
+            if msg.get('role') == 'assistant' and 'explanation_generator_agent' in msg.get('name', ''):
+                content = msg.get('content', '')
+                
+                # Try to extract intent description
+                intent_desc_match = re.search(r'Intent Summary[:\s]+(.*?)(?:\n|$)', content, re.IGNORECASE)
+                if intent_desc_match:
+                    explanation['intent']['description'] = intent_desc_match.group(1).strip()
+                
+                # Try to extract outcome
+                outcome_match = re.search(r'Outcome[:\s]+(Success|Partial Success|Failure)', content, re.IGNORECASE)
+                if outcome_match:
+                    explanation['outcome'] = outcome_match.group(1).strip()
+
+                # Try to extract outcome explanation
+                outcome_explanation_match = re.search(r'Outcome Explanation[:\s]+(.*?)(?:\n\n|$)', content, re.DOTALL)
+                if outcome_explanation_match:
+                    explanation['outcome_explanation'] = outcome_explanation_match.group(1).strip()
+                
+                # Try to extract recommendations
+                recommendations = []
+                rec_matches = re.findall(r'- (.+?)(?::|:)\s+(.+?)(?:\n|$)', content)
+                for action, reason in rec_matches:
+                    recommendations.append({
+                        'action': action.strip(),
+                        'reason': reason.strip()
+                    })
+                
+                if recommendations:
+                    explanation['recommendations'] = recommendations
+                
+                # Try to extract influencing factors
+                factors = []
+                factor_section = re.search(r'(?:Factors|Influencing Factors)[:\s]+(.*?)(?:\n\n|$)', content, re.DOTALL)
+                if factor_section:
+                    factor_list = re.findall(r'- (.+?)(?:\n|$)', factor_section.group(1))
+                    factors = [factor.strip() for factor in factor_list if factor.strip()]
+                
+                if factors:
+                    explanation['influencing_factors'] = factors
+        
+        return explanation
+    
+    def _save_explanation_to_file(self, explanation: Dict[str, Any]) -> str:
+        """Save the explanation to a JSON file and return the file path."""
+
+        # # Use timestamp from explanation or generate a new one
+        # timestamp = explanation.get('timestamp', datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        timestamp_str = timestamp.replace(' ', '_').replace(':', '-')
+        
+        # Create the output file path
+        output_file = config.OUTPUT_PATH / f"explanation_{timestamp_str}.json"
+        
+        # Save the explanation to the file
+        with open(output_file, 'w') as f:
+            json.dump(explanation, f, indent=4)
+        
+        return str(output_file)
+
+
+# Create a singleton instance for use by app.py
+explainer = iExplain()
+
+# For testing the explainer directly
+if __name__ == "__main__":
+    # Test with sample data
+    intent_folder = "nova_api_latency_intent"
+    log_files = ["nova-api.log"]
+    
+    explanation, output_file = explainer.explain(intent_folder, log_files)
+    print(f"Explanation generated and saved to {output_file}")
+    print(json.dumps(explanation, indent=2))

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-iExplain Web Application
-A simple web interface for demonstrating iExplain functionality
+iExplain Web Application - Simplified Version
+A simple web interface using a minimal set of agents
 """
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
@@ -12,151 +12,81 @@ import sys
 from datetime import datetime
 
 # Add the src directory to the path
-current_dir = Path(__file__).parent
-sys.path.append(str(current_dir / "src"))
+# current_dir = Path(__file__).parent
+# sys.path.append(str(current_dir))
 
-# Import iExplain modules
+# Import the minimal iExplain framework with agents
 from config import config
-from tools.parse_tmf_intent import parse_tmf_intent
+from explainer import explainer
 
 app = Flask(__name__)
 
-# Configuration
-app.config['UPLOAD_FOLDER'] = 'uploads'
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-
-# Sample data paths
-DATA_DIR = Path("data")
-INTENT_DIR = DATA_DIR / "intents"
-LOGS_DIR = DATA_DIR / "logs" / "openstack"
-OUTPUT_DIR = Path("output")
-
-# Ensure directories exist
-for dir_path in [DATA_DIR, INTENT_DIR, LOGS_DIR, OUTPUT_DIR]:
-    dir_path.mkdir(parents=True, exist_ok=True)
-
 # Helper functions
 def get_available_intents():
-    """Get a list of available intent files"""
-    return [f for f in os.listdir(INTENT_DIR) if f.endswith('.ttl')]
+    """Get a list of available intent folders with metadata"""
+    intents = []
+    
+    # Get metadata if available
+    metadata = {}
+    metadata_file = config.INTENTS_PATH / "intent_metadata.json"
+    if metadata_file.exists():
+        try:
+            with open(metadata_file, 'r') as f:
+                metadata = json.load(f)
+        except Exception as e:
+            print(f"Error loading intent metadata: {e}")
+    
+    # List all subdirectories in the intents directory
+    for item in os.listdir(config.INTENTS_PATH):
+        # Skip regular files and the metadata file
+        if item == "intent_metadata.json" or not os.path.isdir(config.INTENTS_PATH / item):
+            continue
+        
+        intent_dir = config.INTENTS_PATH / item
+        ttl_file = intent_dir / f"{item}.ttl"
+        nl_file = intent_dir / f"{item}.txt"
+        
+        # Skip if TTL file doesn't exist
+        if not ttl_file.exists():
+            continue
+        
+        # Get natural language content if available
+        nl_content = ""
+        if nl_file.exists():
+            try:
+                with open(nl_file, 'r') as f:
+                    nl_content = f.read()
+            except Exception as e:
+                print(f"Error reading natural language intent: {e}")
+        
+        # Get metadata for this intent if available
+        description = item
+        created_date = "Unknown"
+        intent_id = "Unknown"
+        
+        if item in metadata:
+            description = metadata[item].get('description', description)
+            created_date = metadata[item].get('created_date', created_date)
+            intent_id = metadata[item].get('id', intent_id)
+        
+        intents.append({
+            'folder': item,
+            'description': description,
+            'created_date': created_date,
+            'id': intent_id,
+            'natural_language': nl_content
+        })
+    
+    return intents
 
 def get_available_logs():
-    """Get a list of available log files"""
-    return [f for f in os.listdir(LOGS_DIR) if f.endswith('.log')]
-
-def generate_explanation(intent_file, log_files):
-    """
-    Mock function to generate an explanation
-    In a real implementation, this would call the iExplain processing pipeline
-    """
-    # Read the intent file
-    with open(INTENT_DIR / intent_file, 'r') as f:
-        intent_content = f.read()
-    
-    # Parse the intent
-    parsed_intent = parse_tmf_intent(intent_content)
-    
-    # Mock log analysis results
-    log_results = {
-        'total_entries': 0,
-        'api_calls': 0,
-        'avg_latency': 0,
-        'max_latency': 0,
-        'calls_over_threshold': 0
-    }
-    
-    # Process each log file
-    for log_file in log_files:
-        with open(LOGS_DIR / log_file, 'r') as f:
-            log_lines = f.readlines()
-            
-        # Count entries and extract latency info
-        api_calls = 0
-        total_latency = 0
-        max_latency = 0
-        over_threshold = 0
-        
-        for line in log_lines:
-            log_results['total_entries'] += 1
-            
-            # Check if it's a Nova API call for servers/detail
-            if "nova.osapi_compute.wsgi.server" in line and "GET /v2/" in line and "/servers/detail" in line:
-                api_calls += 1
-                
-                # Extract latency
-                try:
-                    latency_part = line.split("time:")[-1].strip()
-                    latency = float(latency_part) * 1000  # Convert to ms
-                    total_latency += latency
-                    
-                    if latency > max_latency:
-                        max_latency = latency
-                        
-                    # Check if over threshold (250ms)
-                    if latency > 250:
-                        over_threshold += 1
-                except Exception:
-                    pass
-        
-        # Update log results
-        log_results['api_calls'] += api_calls
-        
-        if api_calls > 0:
-            log_results['avg_latency'] = round(total_latency / api_calls, 2)
-        
-        log_results['max_latency'] = max(log_results['max_latency'], max_latency)
-        log_results['calls_over_threshold'] += over_threshold
-    
-    # Generate a timestamp for the report
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
-    # Create an explanation
-    explanation = {
-        'timestamp': timestamp,
-        'intent': {
-            'id': parsed_intent.get('summary', 'Unknown intent'),
-            'description': next((d['description'] for d in parsed_intent.get('descriptions', []) 
-                               if d['type'] == 'Intent'), 'No description found'),
-            'threshold': 250  # ms
-        },
-        'analysis': {
-            'total_logs_analyzed': log_results['total_entries'],
-            'relevant_api_calls': log_results['api_calls'],
-            'avg_response_time': log_results['avg_latency'],
-            'max_response_time': log_results['max_latency'],
-            'calls_exceeding_threshold': log_results['calls_over_threshold'],
-            'threshold_violation_rate': round((log_results['calls_over_threshold'] / log_results['api_calls'] * 100 
-                                             if log_results['api_calls'] > 0 else 0), 2)
-        },
-        'recommendations': [
-            {
-                'action': 'Increase API server resources',
-                'reason': 'Higher resource allocation can reduce processing time'
-            },
-            {
-                'action': 'Optimize database queries',
-                'reason': 'Many list operations are slowed by inefficient queries'
-            },
-            {
-                'action': 'Implement request caching',
-                'reason': 'Frequently accessed server details can be cached'
-            }
-        ],
-        'outcome': 'Partial Success' if log_results['calls_over_threshold'] > 0 else 'Success',
-        'influencing_factors': [
-            'Server resource utilization',
-            'Database query efficiency',
-            'Network conditions',
-            'Request volume'
-        ]
-    }
-    
-    # Save explanation to a file
-    output_file = OUTPUT_DIR / f"explanation_{timestamp.replace(' ', '_').replace(':', '-')}.json"
-    with open(output_file, 'w') as f:
-        json.dump(explanation, f, indent=4)
-    
-    return explanation, str(output_file)
+    """Get a list of available log files, including those in subdirectories"""
+    log_files = []
+    for root, _, files in os.walk(config.LOGS_PATH):
+        for f in files:
+            if f.endswith('.log'):
+                log_files.append(os.path.relpath(os.path.join(root, f), config.LOGS_PATH))
+    return log_files
 
 # Routes
 @app.route('/')
@@ -169,25 +99,28 @@ def index():
 @app.route('/explain', methods=['POST'])
 def explain():
     """Process the selected intent and logs to generate an explanation"""
-    intent_file = request.form.get('intent')
+    intent_folder = request.form.get('intent')
     log_files = request.form.getlist('logs')
     
-    if not intent_file or not log_files:
+    if not intent_folder or not log_files:
         return jsonify({'error': 'Please select an intent and at least one log file'}), 400
     
     try:
-        explanation, output_file = generate_explanation(intent_file, log_files)
+        # Use the minimal agent-based explainer
+        explanation, output_file = explainer.explain(intent_folder, log_files)
         return render_template('explanation.html', explanation=explanation, output_file=output_file)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Error generating explanation: {str(e)}'}), 500
 
 @app.route('/api/explanations', methods=['GET'])
 def list_explanations():
     """API endpoint to list all saved explanations"""
     explanations = []
-    for f in os.listdir(OUTPUT_DIR):
+    for f in os.listdir(config.OUTPUT_PATH):
         if f.startswith('explanation_') and f.endswith('.json'):
-            file_path = OUTPUT_DIR / f
+            file_path = config.OUTPUT_PATH / f
             with open(file_path, 'r') as file:
                 try:
                     data = json.load(file)
@@ -204,7 +137,7 @@ def list_explanations():
 
 if __name__ == '__main__':
     # Ensure the necessary directories exist
-    for dir_path in [DATA_DIR, INTENT_DIR, LOGS_DIR, OUTPUT_DIR]:
+    for dir_path in [config.DATA_PATH, config.INTENTS_PATH, config.LOGS_PATH, config.OUTPUT_PATH]:
         dir_path.mkdir(parents=True, exist_ok=True)
     
     # Start the Flask app
