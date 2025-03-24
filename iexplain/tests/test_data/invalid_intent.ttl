@@ -1,9 +1,0 @@
-
-@prefix icm:  <http://tio.models.tmforum.org/tio/v3.6.0/IntentCommonModel/> .
-@prefix dct:  <http://purl.org/dc/terms/> .
-
-# Missing closing tag
-intendproject:I1 a icm:Intent 
-    log:allOf ( intendproject:DE1 intendproject:RE1) ;
-.
-        
