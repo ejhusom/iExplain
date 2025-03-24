@@ -1,6 +1,15 @@
-# iExplain - Explainability Module
+# iExplain - Intent Explainability Tool
 
-iExplain is a framework designed to generate human-understandable explanations for actions, events, or decisions made by AI agents or systems. It aims to provide clear, context-aware explanations to help users understand the reasoning behind specific sequences of events.
+iExplain is a framework for generating human-understandable explanations for intent-based management systems. It helps stakeholders understand how their high-level intents were interpreted, what actions were taken, and the outcomes achieved.
+
+## Current Status
+
+iExplain is currently in active development as part of the INTEND project. The tool can:
+- Parse intents in TMF format (Turtle RDF)
+- Analyze basic log files to determine if intents were met
+- Generate structured explanations via a multi-agent system
+- Present results through a web interface
+
 
 ## Installation
 
@@ -17,6 +26,12 @@ iExplain is a framework designed to generate human-understandable explanations f
     pip install -r requirements.txt
     ```
 
+3. Set up your environment variables:
+
+    ```sh
+    export OPENAI_API_KEY=your_api_key_here
+    ```
+
 ## Configuration
 
 The configuration file is located in `src/config.py`. The following fields should be defined by the user:
@@ -27,13 +42,37 @@ The configuration file is located in `src/config.py`. The following fields shoul
 
 ## Usage
 
-### Running the Framework
+### Generate sample data
 
-Currently, the main script is set up to read and parse log files placed in `iExplain/iexplain/work_dir/logs'.
-In order to run this tool, place a log file in this directory, iExplain should attempt to parse this log file automatically, independent of the format.
-
-To run the iExplain framework, use the following command:
+Generate sample data for testing the framework by running the following script in the `iexplain` directory:
 
 ```sh
-python3 src/main.py
+./setup.sh
+```
+
+### Running the web interface
+
+The main application runs as a Flask web app:
+
+```sh
+python3 src/app.py
+```
+
+Then access the interface at: http://localhost:5000
+
+### Development
+
+The project uses autogen (formerly ag2) for orchestrating a multi-agent system. The main components are:
+
+- `src/explainer.py`: Core explanation logic
+- `src/app.py`: Web interface
+- `src/agents/`: Specialized LLM agents for different tasks
+- `src/tools/`: Utility functions used by agents
+
+### Testing
+
+Run the basic tests with:
+
+```sh
+python -m unittest discover tests
 ```

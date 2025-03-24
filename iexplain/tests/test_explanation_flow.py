@@ -11,9 +11,8 @@ from tools.parse_logs import parse_logs
 
 class TestExplanationFlow(unittest.TestCase):
     def setUp(self):
-        self.intent_file = Path("data/intents/nova_api_latency_intent.ttl")
+        self.intent_file = Path("data/intents/nova_api_latency_intent/nova_api_latency_intent.ttl")
         self.log_file = Path("data/logs/openstack/nova-api.log")
-        # self.log_file = Path("data/logs/OpenStackOriginal/openstack_normal1.log")
         
     def test_intent_parsing(self):
         with open(self.intent_file, "r") as f:
