@@ -122,7 +122,7 @@ class iExplain:
         prompt = f"""
 I need to explain how a system has addressed a user's intent.
 
-The intent is specified in TMF format:
+The intent is specified in TMF format (file format: {metadata['format']}):
 ```
 {structured_intent}
 ```
@@ -162,9 +162,15 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
             manager,
             message=prompt
         )
+
+        # Extract the full conversation history
+        conversation_log = result.chat_history
         
         # Extract the explanation from the conversation
         explanation = self._extract_explanation_from_result(result, nl_intent, structured_intent, intent_id, intent_description)
+
+        # Add the conversation to the explanation
+        explanation['agent_conversation'] = conversation_log
         
         # Save the explanation to a file
         output_file = self._save_explanation_to_file(explanation)

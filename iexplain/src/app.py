@@ -132,6 +132,51 @@ def list_explanations():
     
     return jsonify(explanations)
 
+@app.route('/explanations')
+def explanations_list():
+    """Show a list of all generated explanations"""
+    explanations = []
+    
+    # Get all explanation files
+    for f in os.listdir(config.OUTPUT_PATH):
+        if f.startswith('explanation_') and f.endswith('.json'):
+            file_path = config.OUTPUT_PATH / f
+            try:
+                with open(file_path, 'r') as file:
+                    data = json.load(file)
+                    explanations.append({
+                        'id': f.replace('explanation_', '').replace('.json', ''),
+                        'file': f,
+                        'timestamp': data.get('timestamp', 'Unknown'),
+                        'intent': data.get('intent', {}).get('description', 'Unknown intent'),
+                        'outcome': data.get('outcome', 'Unknown')
+                    })
+            except Exception as e:
+                print(f"Error reading explanation file {f}: {e}")
+    
+    # Sort by timestamp descending (newest first)
+    explanations.sort(key=lambda x: x['timestamp'], reverse=True)
+    
+    return render_template('explanations_list.html', explanations=explanations)
+
+@app.route('/explanations/<explanation_id>')
+def view_explanation(explanation_id):
+    """View a specific explanation by ID"""
+    file_path = config.OUTPUT_PATH / f"explanation_{explanation_id}.json"
+    
+    if not file_path.exists():
+        return jsonify({'error': 'Explanation not found'}), 404
+    
+    try:
+        with open(file_path, 'r') as file:
+            explanation = json.load(file)
+            return render_template('explanation.html', 
+                                  explanation=explanation, 
+                                  output_file=str(file_path),
+                                  conversation_log=explanation.get('agent_conversation', []))
+    except Exception as e:
+        return jsonify({'error': f'Error reading explanation: {str(e)}'}), 500
+
 if __name__ == '__main__':
     # Ensure the necessary directories exist
     for dir_path in [config.DATA_PATH, config.INTENTS_PATH, config.LOGS_PATH, config.OUTPUT_PATH]:
