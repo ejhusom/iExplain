@@ -58,6 +58,16 @@ iexp:RE1 a icm:ReportingExpectation ;
 .
 EOL
 
+# Create first metadata file with description
+cat > data/intents/nova_api_latency_intent/metadata.json << 'EOL'
+{
+    "name": "nova_api_latency_intent",
+    "description": "Improve Nova API response time",
+    "created_date": "2023-05-01",
+    "id": "I1"
+}
+EOL
+
 # Create second intent files
 cat > data/intents/vm_startup_time_intent/vm_startup_time_intent.txt << 'EOL'
 My team has been noticing that virtual machine startup times are taking too long. We need to reduce the time it takes to provision a new VM instance to under 30 seconds. This is causing delays in our continuous integration pipeline. Please focus on optimizing the VM creation process in our OpenStack environment.
@@ -106,19 +116,13 @@ iexp:RE2 a icm:ReportingExpectation ;
 .
 EOL
 
-# Create metadata file with descriptions
-cat > data/intents/intent_metadata.json << 'EOL'
+# Create second metadata file with description
+cat > data/intents/vm_startup_time_intent/metadata.json << 'EOL'
 {
-  "nova_api_latency_intent": {
-    "description": "Improve Nova API response time",
+    "name": "vm_startup_time_intent",
+    "description": "Reduce VM startup time",
     "created_date": "2023-05-01",
-    "id": "I1"
-  },
-  "vm_startup_time_intent": {
-    "description": "Reduce VM instance startup time",
-    "created_date": "2023-05-02",
     "id": "I2"
-  }
 }
 EOL
 

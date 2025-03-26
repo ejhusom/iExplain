@@ -1,0 +1,55 @@
+body { 
+    padding-top: 20px; 
+}
+
+.header { 
+    margin-bottom: 30px; 
+}
+
+.footer { 
+    margin-top: 50px; 
+    text-align: center; 
+    color: #666; 
+}
+
+.card { 
+    margin-bottom: 20px; 
+}
+
+.intent-card { 
+    cursor: pointer; 
+    transition: background-color 0.3s; 
+}
+
+.intent-card:hover { 
+    background-color: #f8f9fa; 
+}
+
+.intent-card.selected { 
+    background-color: #e9ecef; 
+    border-color: #0d6efd; 
+}
+
+.natural-language { 
+    background-color: #f8f9fa; 
+    padding: 15px; 
+    border-radius: 5px; 
+    margin: 10px 0; 
+}
+
+.success { color: #198754; }
+.partial { color: #fd7e14; }
+.failure { color: #dc3545; }
+
+.recommendation { 
+    border-left: 4px solid #0d6efd; 
+    padding-left: 15px; 
+    margin-bottom: 10px; 
+}
+
+.factor { 
+    background: #f8f9fa; 
+    border-radius: 4px; 
+    padding: 10px; 
+    margin-bottom: 5px; 
+}

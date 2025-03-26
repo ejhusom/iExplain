@@ -11,11 +11,6 @@ from pathlib import Path
 import sys
 from datetime import datetime
 
-# Add the src directory to the path
-# current_dir = Path(__file__).parent
-# sys.path.append(str(current_dir))
-
-# Import the minimal iExplain framework with agents
 from config import config
 from explainer import explainer
 
@@ -26,25 +21,13 @@ def get_available_intents():
     """Get a list of available intent folders with metadata"""
     intents = []
     
-    # Get metadata if available
-    metadata = {}
-    metadata_file = config.INTENTS_PATH / "intent_metadata.json"
-    if metadata_file.exists():
-        try:
-            with open(metadata_file, 'r') as f:
-                metadata = json.load(f)
-        except Exception as e:
-            print(f"Error loading intent metadata: {e}")
-    
     # List all subdirectories in the intents directory
     for item in os.listdir(config.INTENTS_PATH):
-        # Skip regular files and the metadata file
-        if item == "intent_metadata.json" or not os.path.isdir(config.INTENTS_PATH / item):
-            continue
         
         intent_dir = config.INTENTS_PATH / item
         ttl_file = intent_dir / f"{item}.ttl"
         nl_file = intent_dir / f"{item}.txt"
+        metadata_file = intent_dir / "metadata.json"
         
         # Skip if TTL file doesn't exist
         if not ttl_file.exists():
@@ -70,11 +53,16 @@ def get_available_intents():
         description = item
         created_date = "Unknown"
         intent_id = "Unknown"
-        
-        if item in metadata:
-            description = metadata[item].get('description', description)
-            created_date = metadata[item].get('created_date', created_date)
-            intent_id = metadata[item].get('id', intent_id)
+
+        if metadata_file.exists():
+            try:
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                    description = metadata.get('description', description)
+                    created_date = metadata.get('created_date', created_date)
+                    intent_id = metadata.get('id', intent_id)
+            except Exception as e:
+                print(f"Error reading metadata file: {e}")
         
         intents.append({
             'folder': item,

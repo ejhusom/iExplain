@@ -32,15 +32,15 @@ class iExplain:
         self.config_list = config.config_list
         self.agents = get_agents(self.config_list)
         
-        # Load intent metadata if available
-        self.intent_metadata = {}
-        metadata_file = config.INTENTS_PATH / "intent_metadata.json"
-        if metadata_file.exists():
-            try:
-                with open(metadata_file, 'r') as f:
-                    self.intent_metadata = json.load(f)
-            except Exception as e:
-                print(f"Error loading intent metadata: {e}")
+        # # Load intent metadata if available
+        # self.intent_metadata = {}
+        # metadata_file = config.INTENTS_PATH / "intent_metadata.json"
+        # if metadata_file.exists():
+        #     try:
+        #         with open(metadata_file, 'r') as f:
+        #             self.intent_metadata = json.load(f)
+        #     except Exception as e:
+        #         print(f"Error loading intent metadata: {e}")
     
     def explain(self, intent_folder: str, log_files: List[str]) -> Tuple[Dict[str, Any], str]:
         """
@@ -57,6 +57,7 @@ class iExplain:
         intent_dir = config.INTENTS_PATH / intent_folder
         ttl_file = intent_dir / f"{intent_folder}.ttl"
         nl_file = intent_dir / f"{intent_folder}.txt"
+        metadata_file = intent_dir / "metadata.json"
         
         # Check if files exist
         if not ttl_file.exists():
@@ -75,6 +76,18 @@ class iExplain:
             except Exception as e:
                 print(f"Error reading natural language intent: {e}")
 
+        # Read intent metadata if available
+        intent_description = "Unknown intent"
+        intent_id = "Unknown"
+
+        if metadata_file.exists():
+            try:
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                    intent_description = metadata.get('description', intent_description)
+                    intent_id = metadata.get('id', intent_id)
+            except Exception as e:
+                print(f"Error reading intent metadata: {e}")
         
         # Create the log file paths
         log_file_paths = [str(config.LOGS_PATH / "openstack" / log_file) for log_file in log_files]
@@ -99,14 +112,6 @@ class iExplain:
             groupchat=groupchat,
             llm_config={"config_list": self.config_list}
         )
-        
-        # Get intent metadata if available
-        intent_description = "Unknown intent"
-        intent_id = "Unknown"
-        
-        if intent_folder in self.intent_metadata:
-            intent_description = self.intent_metadata[intent_folder].get('description', intent_description)
-            intent_id = self.intent_metadata[intent_folder].get('id', intent_id)
         
         # Create a prompt for the agents
         prompt = f"""
@@ -136,11 +141,13 @@ Please follow this simple process:
 Structure the explanation as a JSON with these fields:
 - timestamp
 - intent (id, description)
+- system_interpretation (from logs)
+- key_actions (list of actions from logs)
 - analysis (metrics from logs)
-- recommendations (list of action/reason pairs)
-- outcome
-- outcome_explanation
+- outcome (Success, Partial Success, Failure)
+- outcome_explanation 
 - influencing_factors (list)
+- recommendations (list of action/reason pairs)
 
 Keep the analysis focused on determining if the intent was fulfilled based on the logs.
 """
