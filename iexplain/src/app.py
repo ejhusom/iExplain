@@ -13,6 +13,7 @@ from datetime import datetime
 
 from config import config
 from explainer import explainer
+from utils import extract_intent_metadata_from_file
 
 app = Flask(__name__)
 
@@ -49,29 +50,29 @@ def get_available_intents():
             except Exception as e:
                 print(f"Error reading TTL file: {e}")
         
-        # Get metadata for this intent if available
-        description = item
-        created_date = "Unknown"
-        intent_id = "Unknown"
-
-        if metadata_file.exists():
-            try:
-                with open(metadata_file, 'r') as f:
-                    metadata = json.load(f)
-                    description = metadata.get('description', description)
-                    created_date = metadata.get('created_date', created_date)
-                    intent_id = metadata.get('id', intent_id)
-            except Exception as e:
-                print(f"Error reading metadata file: {e}")
+        # Extract metadata directly from the TTL file
+        metadata = extract_intent_metadata_from_file(ttl_file)
+        
+        # # Support legacy metadata.json if available (can be removed in future versions)
+        # metadata_file = intent_dir / "metadata.json"
+        # created_date = "Unknown"
+        # if metadata_file.exists():
+        #     try:
+        #         with open(metadata_file, 'r') as f:
+        #             legacy_metadata = json.load(f)
+        #             created_date = legacy_metadata.get('created_date', created_date)
+        #     except Exception as e:
+        #         print(f"Error reading metadata file: {e}")
         
         intents.append({
             'folder': item,
-            'description': description,
-            'created_date': created_date,
-            'id': intent_id,
+            'description': metadata['description'],
+            'created_date': metadata['created_date'],
+            'id': metadata['id'],
             'natural_language': nl_intent,
             'structured': structured_intent
         })
+
     
     return intents
 

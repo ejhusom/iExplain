@@ -18,7 +18,7 @@ from autogen import GroupChat, GroupChatManager
 sys.path.append(str(Path(__file__).parent))
 from config import config
 from get_agents import get_agents
-from utils import parse_escaped_json
+from utils import parse_escaped_json, extract_intent_metadata_from_file
 
 class iExplain:
     """
@@ -76,21 +76,26 @@ class iExplain:
             except Exception as e:
                 print(f"Error reading natural language intent: {e}")
 
-        # Read intent metadata if available
-        intent_description = "Unknown intent"
-        intent_id = "Unknown"
+        # # Read intent metadata if available
+        # intent_description = "Unknown intent"
+        # intent_id = "Unknown"
 
-        if metadata_file.exists():
-            try:
-                with open(metadata_file, 'r') as f:
-                    metadata = json.load(f)
-                    intent_description = metadata.get('description', intent_description)
-                    intent_id = metadata.get('id', intent_id)
-            except Exception as e:
-                print(f"Error reading intent metadata: {e}")
+        # if metadata_file.exists():
+        #     try:
+        #         with open(metadata_file, 'r') as f:
+        #             metadata = json.load(f)
+        #             intent_description = metadata.get('description', intent_description)
+        #             intent_id = metadata.get('id', intent_id)
+        #     except Exception as e:
+        #         print(f"Error reading intent metadata: {e}")
+        
+         # Extract metadata from TTL file
+        metadata = extract_intent_metadata_from_file(ttl_file)
+        intent_description = metadata['description']
+        intent_id = metadata['id']
         
         # Create the log file paths
-        log_file_paths = [str(config.LOGS_PATH / "openstack" / log_file) for log_file in log_files]
+        log_file_paths = [str(config.LOGS_PATH / log_file) for log_file in log_files]
         
         # Create a minimal group chat with just 3 essential agents:
         # 1. intent_parser_agent - to understand the intent
@@ -293,7 +298,7 @@ explainer = iExplain()
 if __name__ == "__main__":
     # Test with sample data
     intent_folder = "nova_api_latency_intent"
-    log_files = ["nova-api.log"]
+    log_files = ["openstack/nova-api.log"]
     
     explanation, output_file = explainer.explain(intent_folder, log_files)
     print(f"Explanation generated and saved to {output_file}")
