@@ -53,17 +53,6 @@ def get_available_intents():
         # Extract metadata directly from the TTL file
         metadata = extract_intent_metadata_from_file(ttl_file)
         
-        # # Support legacy metadata.json if available (can be removed in future versions)
-        # metadata_file = intent_dir / "metadata.json"
-        # created_date = "Unknown"
-        # if metadata_file.exists():
-        #     try:
-        #         with open(metadata_file, 'r') as f:
-        #             legacy_metadata = json.load(f)
-        #             created_date = legacy_metadata.get('created_date', created_date)
-        #     except Exception as e:
-        #         print(f"Error reading metadata file: {e}")
-        
         intents.append({
             'folder': item,
             'description': metadata['description'],
@@ -73,7 +62,6 @@ def get_available_intents():
             'structured': structured_intent
         })
 
-    
     return intents
 
 def get_available_logs():
