@@ -10,6 +10,9 @@ iExplain is currently in active development as part of the INTEND project. The t
 - Generate structured explanations via a multi-agent system
 - Present results through a web interface
 
+Below is a diagram showing an overview of the framework.
+
+![iExplain diagram](iexplain/docs/iexplain-diagram.png)
 
 ## Installation
 
