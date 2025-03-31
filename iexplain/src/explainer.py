@@ -76,31 +76,15 @@ class iExplain:
             except Exception as e:
                 print(f"Error reading natural language intent: {e}")
 
-        # # Read intent metadata if available
-        # intent_description = "Unknown intent"
-        # intent_id = "Unknown"
-
-        # if metadata_file.exists():
-        #     try:
-        #         with open(metadata_file, 'r') as f:
-        #             metadata = json.load(f)
-        #             intent_description = metadata.get('description', intent_description)
-        #             intent_id = metadata.get('id', intent_id)
-        #     except Exception as e:
-        #         print(f"Error reading intent metadata: {e}")
-        
          # Extract metadata from TTL file
         metadata = extract_intent_metadata_from_file(ttl_file)
         intent_description = metadata['description']
         intent_id = metadata['id']
         
-        # Create the log file paths
+        # Create the full log file paths
         log_file_paths = [str(config.LOGS_PATH / log_file) for log_file in log_files]
         
-        # Create a minimal group chat with just 3 essential agents:
-        # 1. intent_parser_agent - to understand the intent
-        # 2. log_analysis_agent - to analyze the logs
-        # 3. explanation_generator_agent - to create explanations
+        # Create the groupchat with agents
         groupchat = GroupChat(
             agents=[
                 self.agents["user_proxy_agent"],
