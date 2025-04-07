@@ -13,7 +13,7 @@ from datetime import datetime
 
 from config import config
 from explainer import explainer
-from utils import extract_intent_metadata_from_file
+from utils import extract_intent_metadata_from_file, load_config_for_display
 
 app = Flask(__name__)
 
@@ -91,9 +91,15 @@ def explain():
         return jsonify({'error': 'Please select an intent and at least one log file'}), 400
     
     try:
-        # Use the minimal agent-based explainer
         explanation, output_file = explainer.explain(intent_folder, log_files)
-        return render_template('explanation.html', explanation=explanation, output_file=output_file)
+        sections = load_config_for_display()
+        return render_template(
+                'explanation.html', 
+                explanation=explanation, 
+                output_file=output_file,
+                all_sections=sections,
+                config=config,
+        )
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -158,10 +164,17 @@ def view_explanation(explanation_id):
     try:
         with open(file_path, 'r') as file:
             explanation = json.load(file)
+
+            sections = load_config_for_display()
+
             return render_template('explanation.html', 
                                   explanation=explanation, 
                                   output_file=str(file_path),
-                                  conversation_log=explanation.get('agent_conversation', []))
+                                  conversation_log=explanation.get('agent_conversation', []),
+                                  all_sections=sections,
+                                  config=config,
+            )
+
     except Exception as e:
         return jsonify({'error': f'Error reading explanation: {str(e)}'}), 500
 

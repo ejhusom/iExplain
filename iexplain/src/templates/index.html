@@ -117,6 +117,37 @@
             <p>INTEND Project - iExplain Component</p>
         </div>
     </div>
+
+	<!-- Processing modal -->
+	<div class="modal fade" id="processingModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+	  <div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+		  <div class="modal-header">
+			<h5 class="modal-title">Generating Explanation</h5>
+		  </div>
+		  <div class="modal-body text-center">
+			<div class="mb-4">
+			  <div class="spinner-border text-primary" role="status">
+				<span class="visually-hidden">Loading...</span>
+			  </div>
+			</div>
+
+			<div id="processing-details" class="mb-3">
+			  <p><strong>Intent:</strong> <span id="processing-intent"></span></p>
+			  <p><strong>Analyzing logs:</strong></p>
+			  <ul id="processing-logs" class="list-unstyled text-muted small"></ul>
+			</div>
+
+			<!-- <div class="progress mb-3"> -->
+			<!--   <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" -->
+			<!-- 	   role="progressbar" style="width: 0%"></div> -->
+			<!-- </div> -->
+
+			<p class="text-muted small">This may take a few minutes depending on the complexity...</p>
+		  </div>
+		</div>
+	  </div>
+	</div>
     
     <script>
         // Select intent card
@@ -196,6 +227,59 @@
                 document.getElementById('recent-explanations').innerHTML = 
                     '<p class="text-danger">Error loading explanations</p>';
             });
+
+
+		// Processing modal 
+		// Show processing modal when form is submitted
+		document.querySelector('form').addEventListener('submit', function(e) {
+		  // Get the selected intent name
+		  const intentElement = document.querySelector('.intent-card.selected');
+		  const intentName = intentElement ? intentElement.querySelector('.card-title').textContent : 'Selected intent';
+
+		  // Get selected log files
+		  const selectedLogs = [];
+		  document.querySelectorAll('.log-checkbox:checked').forEach(checkbox => {
+			selectedLogs.push(checkbox.nextElementSibling.textContent.trim());
+		  });
+
+		  // Update the modal with the details
+		  document.getElementById('processing-intent').textContent = intentName;
+
+		  const logsList = document.getElementById('processing-logs');
+		  logsList.innerHTML = '';
+		  selectedLogs.forEach(log => {
+			const li = document.createElement('li');
+			li.textContent = log;
+			logsList.appendChild(li);
+		  });
+
+		  // Show the modal
+		  const modal = new bootstrap.Modal(document.getElementById('processingModal'));
+		  modal.show();
+
+		  // Simulate progress (since we don't have real progress updates from backend)
+		  // simulateProgress();
+		});
+
+		// function simulateProgress() {
+		//   const progressBar = document.getElementById('progress-bar');
+		//   let progress = 0;
+
+		//   // Generic steps that roughly correspond to the backend process
+		//   const steps = [
+		// 	{ percent: 20, delay: 1000 },    // Starting up
+		// 	{ percent: 40, delay: 2000 },    // Processing intent
+		// 	{ percent: 60, delay: 3000 },    // Analyzing logs
+		// 	{ percent: 85, delay: 4000 }     // Generating explanation
+		//   ];
+
+		//   steps.forEach((step, index) => {
+		// 	setTimeout(() => {
+		// 	  progressBar.style.width = step.percent + '%';
+		// 	  progressBar.setAttribute('aria-valuenow', step.percent);
+		// 	}, step.delay);
+		//   });
+		// }
     </script>
 </body>
 </html>

@@ -44,6 +44,73 @@ class Config:
             "api_type": self.LLM_SERVICE,
         }]
 
+        self.EXPLANATION_CONFIG = {
+            "timestamp": {
+                "title": "Timestamp",
+                "display_type": "text",
+                "description": "Time when the explanation was generated",
+                "display_priority": 5,
+            },
+            "intent": {
+                "title": "Intent",
+                "display_type": "object",
+                "description": "The intent object containing id and description",
+                "display_priority": 8,
+            },
+            "outcome": {
+                "title": "Outcome",
+                "display_type": "status",  # Special handling for success/failure states
+                "description": "Whether the intent was fulfilled, either 'Success', 'Partial Success', or 'Failure'",
+                "display_priority": 10,  # Lower numbers appear first
+            },
+            "outcome_explanation": {
+                "title": "Outcome Explanation",
+                "display_type": "text",
+                "description": "Explanation of the outcome",
+                "display_priority": 20,
+            },
+            "system_interpretation": {
+                "title": "System Interpretation",
+                "display_type": "text",
+                "description": "How the system interpreted the intent",
+                "display_priority": 30,
+            },
+            "key_actions": {
+                "title": "Key Actions",
+                "display_type": "list",
+                "description": "Actions taken by the system",
+                "display_priority": 40,
+                "item_type": "simple"
+            },
+            "analysis": {
+                "title": "Analysis Results",
+                "display_type": "key_value",  # Will display as key-value pairs
+                "description": "Detailed metrics from logs",
+                "display_priority": 50,
+            },
+            "recommendations": {
+                "title": "Recommendations",
+                "display_type": "list",
+                "description": "Suggested improvements, as a list of action/reason pairs",
+                "display_priority": 60,
+                "item_type": "recommendation"  # Special format for recommendations with action/reason pairs
+            },
+            "influencing_factors": {
+                "title": "Influencing Factors",
+                "display_type": "list",
+                "description": "Factors affecting the outcome",
+                "display_priority": 70,
+                "item_type": "factor"
+            },
+        }
+
+        # Fields that should be hidden/collapsed by default
+        self.HIDDEN_EXPLANATION_FIELDS = []
+        # Fields that are excluded from having a separate field in the dashboard
+        self.EXCLUDED_EXPLANATION_FIELDS = ["timestamp", "intent"]
+
+        self.EXPLANATION_SINGLE_COLUMN = False
+
         self._init_paths()
 
     def _init_paths(self):

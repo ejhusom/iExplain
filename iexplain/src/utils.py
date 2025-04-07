@@ -3,6 +3,28 @@ import re
 from pathlib import Path
 from typing import Dict, Optional, Tuple
 
+from config import config
+
+def load_config_for_display():
+    """Load config for displaying in dashboard."""
+
+    # Prepare all sections for display, sorted by priority
+    sections = []
+
+    # Sort fields by priority
+    for field_name, field_config in sorted(
+        config.EXPLANATION_CONFIG.items(),
+        key=lambda x: x[1]['display_priority']
+    ):
+        section = {
+            'key': field_name,
+            'title': field_config['title'],
+            'type': field_config['display_type'],
+            'item_type': field_config.get('item_type', 'simple')
+        }
+        sections.append(section)
+
+    return sections
 
 def parse_escaped_json(text):
     # Unescape the string (convert \\n to \n, etc.)

@@ -101,6 +101,14 @@ class iExplain:
             groupchat=groupchat,
             llm_config={"config_list": self.config_list}
         )
+
+        # Use the config to create the fields list for the prompt
+        expected_fields = []
+        for field_name, field_config in config.EXPLANATION_CONFIG.items():
+            expected_fields.append(f"- {field_name}: {field_config['description']}")
+
+        # Build the prompt with expected fields
+        field_list = "\n".join(expected_fields)
         
         # Create a prompt for the agents
         prompt = f"""
@@ -120,23 +128,9 @@ Please follow this simple process:
 1. Parse the intent to understand what the user wants
 2. Analyze the logs to see if the intent was met
 3. Generate a structured explanation with:
-   - Intent summary
-   - System interpretation
-   - Key actions taken (based on logs)
-   - Outcome (Success, Partial Success, Failure)
-   - Outcome explanation
-   - Influencing factors
+{field_list}
 
-Structure the explanation as a JSON with these fields:
-- timestamp
-- intent (id, description)
-- system_interpretation (from logs)
-- key_actions (list of actions from logs)
-- analysis (metrics from logs)
-- outcome (Success, Partial Success, Failure)
-- outcome_explanation 
-- influencing_factors (list)
-- recommendations (list of action/reason pairs)
+Structure the explanation as a JSON with all these fields.
 
 Keep the analysis focused on determining if the intent was fulfilled based on the logs.
 """
