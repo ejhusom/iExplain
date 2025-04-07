@@ -80,16 +80,66 @@ Additionally, it's possible to customize where input and output data is stored:
 | INTENTS_PATH | Path to intent definitions       | ./data/intents |
 | OUTPUT_PATH  | Path for output files            | ./output       |
 
+### Output and Dashboard Configuration
+
+The explanation dashboard is dynamically generated and can be fully customized through these configuration parameters:
+
+| Setting                   | Description                                          | Example Values                |
+| ------------------------- | ---------------------------------------------------- | ---------------------------- |
+| EXPLANATION_CONFIG        | Field display settings for the dashboard             | Dictionary of field configs  |
+| HIDDEN_EXPLANATION_FIELDS | Fields that are hidden by default but can be toggled | ["analysis"]                 |
+| EXCLUDED_EXPLANATION_FIELDS | Fields completely excluded from the dashboard      | ["timestamp"]                |
+| EXPLANATION_SINGLE_COLUMN | Toggle between one and two-column layout             | True/False                   |
+
+
+#### Explanation Output Configuration
+
+`EXPLANATION_CONFIG` controls how the multi-agent framework will structure its output.
+Each field can be configured with the following options:
+
+```python
+"field_name": {
+    "title": "Display Title",
+    "display_type": "text",  # text, list, key_value, status, etc.
+    "description": "Field description (used in the system prompt of the multi-agent framework)",
+    "display_priority": 10,  # Lower numbers appear first
+    "item_type": "simple"    # For lists: simple, recommendation, factor
+}
+```
+
+This configuration approach allows for:
+
+- Adding new fields without modifying the display template
+- Changing the order of displayed fields
+- Hiding or excluding specific fields
+- Customizing how each field is displayed
+- Switching between single and two-column layouts
+
+#### Explanation Output
+
+The default explanation output includes:
+
+- Original intent request (TMF format and/or natural language)
+- Intent outcome (was the intent fulfilled or not) with explanation for why or why not
+- Analysis results based on the system logs
+- Influencing factors
+- Recommendations
+- The full interaction log of the multi-agent framework
+
+All of these components are configurable through the dashboard settings.
+
 ## Usage
 
 ### Starting the Application
 
 Run the Flask application:
+
 ```bash
 python src/app.py
 ```
 
-Access the web interface at: [http://localhost:5000](http://localhost:5000)
+Access the web interface at: [http://localhost:5000](http://localhost:5000).
+
 ### Defining Intents
 
 iExplain accepts intents in two formats:
@@ -160,7 +210,7 @@ Place log files in the `data/logs` directory. iExplain supports various log form
 
 ### Explanation Output
 
-The explanation output includes:
+The default explanation output includes:
 
 - Original intent request (TMF format and/or natural language)
 - Intent outcome (was the intent fulfilled or not) with explanation for why or why not
@@ -226,7 +276,6 @@ def my_new_tool(param1: str, param2: int) -> Dict[str, Any]:
     
     return result
 ```
-
 
 ## API Reference
 

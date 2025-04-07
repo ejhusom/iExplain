@@ -43,6 +43,16 @@ The configuration file is located in `src/config.py`. The following fields shoul
 - `LLM_MODEL`: The language model to use.
 - `LLM_API_KEY`: Your OpenAI API key.
 
+### Dashboard Configuration
+
+The explanation dashboard is now fully configurable through `config.py`:
+
+- `EXPLANATION_CONFIG`: Defines which fields to display, their order, and their presentation style
+- `HIDDEN_EXPLANATION_FIELDS`: Fields that are hidden by default but can be toggled visible
+- `EXCLUDED_EXPLANATION_FIELDS`: Fields that are completely excluded from the dashboard
+- `EXPLANATION_SINGLE_COLUMN`: Toggle between single-column and two-column layout
+
+
 ## Usage
 
 ### Generate sample data
