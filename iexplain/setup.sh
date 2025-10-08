@@ -5,7 +5,6 @@
 mkdir -p data/intents/nova_api_latency_intent
 mkdir -p data/intents/vm_startup_time_intent
 mkdir -p data/logs/openstack
-mkdir -p data/metadata
 mkdir -p output
 mkdir -p templates
 

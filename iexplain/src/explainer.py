@@ -32,16 +32,6 @@ class iExplain:
         self.config_list = config.config_list
         self.agents = get_agents(self.config_list)
         
-        # # Load intent metadata if available
-        # self.intent_metadata = {}
-        # metadata_file = config.INTENTS_PATH / "intent_metadata.json"
-        # if metadata_file.exists():
-        #     try:
-        #         with open(metadata_file, 'r') as f:
-        #             self.intent_metadata = json.load(f)
-        #     except Exception as e:
-        #         print(f"Error loading intent metadata: {e}")
-    
     def explain(self, intent_folder: str, log_files: List[str]) -> Tuple[Dict[str, Any], str]:
         """
         Generate an explanation for an intent based on log files using agents.
@@ -260,8 +250,7 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
     def _save_explanation_to_file(self, explanation: Dict[str, Any]) -> str:
         """Save the explanation to a JSON file and return the file path."""
 
-        # # Use timestamp from explanation or generate a new one
-        # timestamp = explanation.get('timestamp', datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
+        # Use timestamp from explanation or generate a new one
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         timestamp_str = timestamp.replace(' ', '_').replace(':', '-')
         

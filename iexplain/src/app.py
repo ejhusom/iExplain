@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-iExplain Web Application - Simplified Version
-A simple web interface using a minimal set of agents
+iExplain Web Application
+A web interface for selecting intents and logs to generate explanations.
 """
 
 from flask import Flask, render_template, request, jsonify, redirect, url_for
