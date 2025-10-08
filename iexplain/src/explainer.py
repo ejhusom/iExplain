@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""iExplain - Minimal Viable Service using a few key agents
+"""iExplain - Intent Explanation Framework
 
-A simplified version of the iExplain framework using just a few core agents.
+Multi-agent system for generating explanations about how systems address user intents.
 """
 import os
 import json
@@ -11,8 +11,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple, Any
-
-from autogen import GroupChat, GroupChatManager
+import importlib.util
 
 # Import from existing code
 sys.path.append(str(Path(__file__).parent))
@@ -22,41 +21,70 @@ from utils import parse_escaped_json, extract_intent_metadata_from_file
 
 class iExplain:
     """
-    A minimal implementation of the iExplain framework using just a few agents.
+    Intent explanation framework using configurable multi-agent workflows.
     """
-    
+
     def __init__(self):
-        """Initialize the minimal explainer with agents."""
-        
-        # Initialize agents - for the MVS, we just use 3 key agents
+        """Initialize the explainer with agents and workflow."""
+
+        # Initialize agents
         self.config_list = config.config_list
         self.agents = get_agents(self.config_list)
+
+        # Load the configured workflow
+        self.workflow = self._load_workflow(config.WORKFLOW_TYPE)
+
+    def _load_workflow(self, workflow_type: str):
+        """Dynamically load workflow based on config.
+
+        Args:
+            workflow_type: Type of workflow to load (sequential, nested, groupchat)
+
+        Returns:
+            Workflow instance
+        """
+        workflow_file = Path(__file__).parent / "workflows" / f"{workflow_type}_workflow.py"
+
+        if not workflow_file.exists():
+            raise FileNotFoundError(
+                f"Workflow file not found: {workflow_file}. "
+                f"Available workflows: sequential, nested, groupchat"
+            )
+
+        # Load the workflow module
+        spec = importlib.util.spec_from_file_location(workflow_type, workflow_file)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        # Find the workflow class (e.g., SequentialWorkflow)
+        class_name = f"{''.join(word.capitalize() for word in workflow_type.split('_'))}Workflow"
+        workflow_class = getattr(module, class_name)
+
+        return workflow_class()
         
     def explain(self, intent_folder: str, log_files: List[str]) -> Tuple[Dict[str, Any], str]:
-        """
-        Generate an explanation for an intent based on log files using agents.
-        
+        """Generate an explanation for an intent based on log files using agents.
+
         Args:
-            intent_folder (str): Name of the intent folder
-            log_files (List[str]): List of log file paths
-            
+            intent_folder: Name of the intent folder
+            log_files: List of log file paths (relative to LOGS_PATH)
+
         Returns:
-            Tuple[Dict[str, Any], str]: Explanation results and output file path
+            Tuple of (explanation_dict, output_file_path)
         """
         # Construct paths to the intent files
         intent_dir = config.INTENTS_PATH / intent_folder
         ttl_file = intent_dir / f"{intent_folder}.ttl"
         nl_file = intent_dir / f"{intent_folder}.txt"
-        metadata_file = intent_dir / "metadata.json"
-        
+
         # Check if files exist
         if not ttl_file.exists():
             raise FileNotFoundError(f"TTL file not found: {ttl_file}")
-        
+
         # Read the TTL intent file
         with open(ttl_file, 'r') as f:
             structured_intent = f.read()
-        
+
         # Read natural language intent if available
         nl_intent = ""
         if nl_file.exists():
@@ -66,84 +94,49 @@ class iExplain:
             except Exception as e:
                 print(f"Error reading natural language intent: {e}")
 
-         # Extract metadata from TTL file
+        # Extract metadata from TTL file
         metadata = extract_intent_metadata_from_file(ttl_file)
         intent_description = metadata['description']
         intent_id = metadata['id']
-        
+
         # Create the full log file paths
         log_file_paths = [str(config.LOGS_PATH / log_file) for log_file in log_files]
-        
-        # Create the groupchat with agents
-        groupchat = GroupChat(
-            agents=[
-                self.agents["user_proxy_agent"],
-                self.agents["intent_parser_agent"],
-                self.agents["log_analysis_agent"],
-                self.agents["explanation_generator_agent"]
-            ],
-            messages=[],
-            max_round=2,  # Keep it simple with fewer rounds
-            send_introductions=True
-        )
-        
-        manager = GroupChatManager(
-            groupchat=groupchat,
-            llm_config={"config_list": self.config_list}
-        )
 
-        # Use the config to create the fields list for the prompt
+        # Prepare intent data for workflow
+        intent_data = {
+            'structured_intent': structured_intent,
+            'nl_intent': nl_intent,
+            'metadata': metadata
+        }
+
+        # Build expected fields from config
         expected_fields = []
         for field_name, field_config in config.EXPLANATION_CONFIG.items():
             expected_fields.append(f"- {field_name}: {field_config['description']}")
 
-        # Build the prompt with expected fields
-        field_list = "\n".join(expected_fields)
-        
-        # Create a prompt for the agents
-        prompt = f"""
-I need to explain how a system has addressed a user's intent.
+        print(f"Using {config.WORKFLOW_TYPE} workflow...")
 
-The intent is specified in TMF format (file format: {metadata['format']}):
-```
-{structured_intent}
-```
-
-{f"The original natural language intent was: '{nl_intent}'" if nl_intent else ""}
-
-I need to analyze the following log files to determine if the intent was fulfilled:
-{', '.join(log_file_paths)}
-
-Please follow this simple process:
-1. Parse the intent to understand what the user wants
-2. Analyze the logs to see if the intent was met
-3. Generate a structured explanation with:
-{field_list}
-
-Structure the explanation as a JSON with all these fields.
-
-Keep the analysis focused on determining if the intent was fulfilled based on the logs.
-"""
-        
-        # Start the conversation
-        result = self.agents["user_proxy_agent"].initiate_chat(
-            manager,
-            message=prompt
+        # Execute the configured workflow
+        result, conversation_log = self.workflow.execute(
+            agents=self.agents,
+            config_list=self.config_list,
+            intent_data=intent_data,
+            log_files=log_file_paths,
+            expected_fields=expected_fields
         )
 
-        # Extract the full conversation history
-        conversation_log = result.chat_history
-        
-        # Extract the explanation from the conversation
-        explanation = self._extract_explanation_from_result(result, nl_intent, structured_intent, intent_id, intent_description)
+        # Extract the explanation from the workflow result
+        explanation = self._extract_explanation_from_result(
+            result, nl_intent, structured_intent, intent_id, intent_description
+        )
 
         # Add session metadata before agent_conversation
         explanation['session_metadata'] = self._get_session_metadata()
         explanation['agent_conversation'] = conversation_log
-        
+
         # Save the explanation to a file
         output_file = self._save_explanation_to_file(explanation)
-        
+
         return explanation, output_file
 
     def _get_session_metadata(self):
@@ -187,7 +180,8 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
             print("Found JSON content in the result")
             # Try to parse the JSON
             try:
-                explanation = parse_escaped_json(json_matches[0])
+                # Choose the last JSON match in case of multiple
+                explanation = parse_escaped_json(json_matches[-1])
                 # Add natural language intent if available
                 explanation['natural_language_intent'] = nl_intent
                 explanation['structured_intent'] = structured_intent
@@ -207,6 +201,7 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
                 
                 return explanation
             except json.JSONDecodeError:
+                breakpoint()
                 print(f"Error decoding JSON from result: {json_matches[0]}")
         
         # If no valid JSON found, look for explanation content in a more flexible way

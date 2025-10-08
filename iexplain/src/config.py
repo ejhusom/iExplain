@@ -136,6 +136,32 @@ class Config:
 
         self.EXPLANATION_SINGLE_COLUMN = False
 
+        # WORKFLOW CONFIGURATION
+        # Workflow type determines agent interaction pattern
+        # Options: "sequential", "nested", "groupchat"
+        self.WORKFLOW_TYPE = "sequential"
+
+        # Workflow-specific parameters
+        self.WORKFLOW_CONFIG = {
+            "sequential": {
+                "intent_parsing_turns": 1,
+                "log_analysis_turns": 2,
+                "explanation_turns": 1,
+                "use_reflection_summary": True  # Use LLM to summarize log analysis
+            },
+            "nested": {
+                "max_nested_depth": 3,
+                "nested_log_analysis": True,
+                "intent_parsing_turns": 1,
+                "explanation_turns": 1
+            },
+            "groupchat": {
+                "max_rounds": 10,
+                "speaker_selection_method": "auto",
+                "send_introductions": True
+            }
+        }
+
         self._init_paths()
 
     def _init_paths(self):

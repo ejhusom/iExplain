@@ -166,6 +166,7 @@
             </div>
         </div>
 
+        {% if explanation.session_metadata is defined and explanation.session_metadata.llm_config is defined %}
         <!-- Agent Overview Section -->
         <div class="mb-3">
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#agentOverview" aria-expanded="false" aria-controls="agentOverview">
@@ -194,6 +195,7 @@
             </div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Agent Conversation Section -->
         <div class="mb-3">
