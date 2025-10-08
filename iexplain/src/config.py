@@ -29,20 +29,45 @@ class Config:
         self.WORK_DIR = Path("./work_dir")
 
         # User-defined parameters:
-        self.LLM_SERVICE = "openai"
-        self.LLM_MODEL = "gpt-4o-mini"
+        # self.LLM_SERVICE = "openai"
+        # self.LLM_MODEL = "gpt-4o-mini"
+        # self.LLM_MODEL = "gpt-4.1-nano"
+        self.LLM_SERVICE = "anthropic"
+        self.LLM_MODEL = "claude-sonnet-4-5-20250929"
         # self.LLM_SERVICE = "ollama"
         # self.LLM_MODEL = "llama3.2:1b"
         # self.LLM_MODEL = "deepseek-r1:1.5b"
         # self.LLM_MODEL = "qwen2.5:0.5b"
         # self.LLM_MODEL = "gemma2:2b-instruct-q3_K_S"
-        self.LLM_API_KEY = os.environ.get("OPENAI_API_KEY")
 
+        # API KEYS
+        try:
+            assert self.LLM_SERVICE in ["openai", "ollama", "anthropic"], "LLM_SERVICE must be 'openai', 'ollama', or 'anthropic'"
+        except AssertionError as e:
+            print(f"Configuration error: {e}")
+            raise
+
+        if self.LLM_SERVICE == "openai":
+            self.LLM_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+            if not self.LLM_API_KEY:
+                raise ValueError("OPENAI_API_KEY environment variable not set.")
+        elif self.LLM_SERVICE == "anthropic":
+            self.LLM_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
+            if not self.LLM_API_KEY:
+                raise ValueError("ANTHROPIC_API_KEY environment variable not set.")
+        elif self.LLM_SERVICE == "ollama":
+            self.LLM_API_KEY = None  # Ollama does not require an API key
+
+        # LLM CONFIGURATION 
         self.config_list = [{
             "model": self.LLM_MODEL,
             "api_key": self.LLM_API_KEY,
             "api_type": self.LLM_SERVICE,
         }]
+
+        # Adjust default context length for specific services
+        if self.LLM_SERVICE == "ollama":
+            self.config_list[0]["num_ctx"] = 131072
 
         self.EXPLANATION_CONFIG = {
             "timestamp": {

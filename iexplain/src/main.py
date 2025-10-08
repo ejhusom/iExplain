@@ -52,12 +52,21 @@ class iExplain:
             self.config_list = [{
                 "model": config.LLM_MODEL, 
                 "api_key": os.environ.get("OPENAI_API_KEY")
+                "num_ctx": 131072,
+            }]
+            self.max_context_length = 100000
+        elif config.LLM_SERVICE == "anthropic":
+            self.config_list = [{
+                "model": config.LLM_MODEL, 
+                "api_key": os.environ.get("ANTHROPIC_API_KEY")
+                "num_ctx": 131072,
             }]
             self.max_context_length = 100000
         elif config.LLM_SERVICE == "ollama":
             self.config_list = [{
                 "model": config.LLM_MODEL, 
                 "api_type": "ollama",
+                "num_ctx": 131072,
             }]
 
             # Find context length

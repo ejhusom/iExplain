@@ -109,7 +109,7 @@ The intent is specified in TMF format (file format: {metadata['format']}):
 {structured_intent}
 ```
 
-{f"The original natural language intent was: {nl_intent}" if nl_intent else ""}
+{f"The original natural language intent was: '{nl_intent}'" if nl_intent else ""}
 
 I need to analyze the following log files to determine if the intent was fulfilled:
 {', '.join(log_file_paths)}
@@ -168,10 +168,16 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
                 
                 # Add or update basic intent info
                 explanation.setdefault('intent', {})
-                if 'id' not in explanation['intent'] or not explanation['intent']['id']:
-                    explanation['intent']['id'] = intent_id
-                if 'description' not in explanation['intent'] or not explanation['intent']['description']:
-                    explanation['intent']['description'] = intent_description
+                if explanation['intent'].get('id') != intent_id:
+                    print(f"Warning: Agent-generated intent ID '{explanation['intent'].get('id')}' does not match expected ID '{intent_id}'")
+                explanation['intent']['id'] = intent_id
+                
+                if explanation['intent'].get('description') != intent_description:
+                    print(f"Warning: Agent-generated intent description '{explanation['intent'].get('description')}' does not match expected description '{intent_description}'")
+                explanation['intent']['description'] = intent_description
+                
+                # Set the timestamp to the current time and date
+                explanation['timestamp'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
                 return explanation
             except json.JSONDecodeError:
