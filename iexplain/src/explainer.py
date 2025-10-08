@@ -164,6 +164,8 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
                 "system_message": sys_msg
             })
 
+        # TODO: Include in agents_info, which agents that actually participated in the conversation.
+
         return {
             "llm_config": llm_config,
             "agents": agents_info
