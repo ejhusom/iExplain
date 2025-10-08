@@ -166,6 +166,35 @@
             </div>
         </div>
 
+        <!-- Agent Overview Section -->
+        <div class="mb-3">
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#agentOverview" aria-expanded="false" aria-controls="agentOverview">
+            Show Agent Overview
+            </button>
+        </div>
+
+        <div class="collapse" id="agentOverview">
+            <div class="card">
+            <div class="card-header">
+                <h5>Agent Overview</h5>
+                <small class="text-muted">See the details of the AI agents involved in this explanation</small>
+            </div>
+            <div class="card-body">
+                <div class="conversation-container">
+                {% for agent in explanation.session_metadata.agents %}
+                <details class="mb-2">
+                    <summary><strong>{{ agent.name }}</strong></summary>
+                    <div class="mt-2">
+                        <p>System Message:</p>
+                        <pre>{{ agent.system_message | safe }}</pre>
+                    </div>
+                </details>
+                {% endfor %}
+                </div>
+            </div>
+            </div>
+        </div>
+
         <!-- Agent Conversation Section -->
         <div class="mb-3">
             <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#conversationLog" aria-expanded="false" aria-controls="conversationLog">
@@ -196,7 +225,7 @@
                 </div>
             </div>
         </div>
-        
+
         <div class="footer">
             <p>INTEND Project - iExplain Component</p>
         </div>
