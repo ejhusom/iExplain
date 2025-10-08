@@ -83,7 +83,7 @@ class iExplain:
                 self.agents["explanation_generator_agent"]
             ],
             messages=[],
-            max_round=10,  # Keep it simple with fewer rounds
+            max_round=2,  # Keep it simple with fewer rounds
             send_introductions=True
         )
         
@@ -137,13 +137,37 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
         # Extract the explanation from the conversation
         explanation = self._extract_explanation_from_result(result, nl_intent, structured_intent, intent_id, intent_description)
 
-        # Add the conversation to the explanation
+        # Add session metadata before agent_conversation
+        explanation['session_metadata'] = self._get_session_metadata()
         explanation['agent_conversation'] = conversation_log
         
         # Save the explanation to a file
         output_file = self._save_explanation_to_file(explanation)
         
         return explanation, output_file
+
+    def _get_session_metadata(self):
+        # Get LLM config (service/model)
+        llm_cfg = self.config_list[0]
+        llm_config = {
+            "service": llm_cfg.get("api_type", ""),
+            "model": llm_cfg.get("model", "")
+        }
+
+        # Get agent details (name/system_message)
+        agents_info = []
+        for name, agent in self.agents.items():
+            # Try to get system_message, fallback to None
+            sys_msg = getattr(agent, "system_message", None)
+            agents_info.append({
+                "name": name,
+                "system_message": sys_msg
+            })
+
+        return {
+            "llm_config": llm_config,
+            "agents": agents_info
+        }
     
     def _extract_explanation_from_result(self, result, nl_intent: str, structured_intent: str, intent_id: str, intent_description: str) -> Dict[str, Any]:
         """
@@ -268,7 +292,6 @@ Keep the analysis focused on determining if the intent was fulfilled based on th
             json.dump(explanation, f, indent=4)
         
         return str(output_file)
-
 
 # Create a singleton instance for use by app.py
 explainer = iExplain()

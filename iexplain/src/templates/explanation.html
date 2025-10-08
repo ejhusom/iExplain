@@ -155,6 +155,11 @@
                     </div>
                     <div class="card-body">
                         <p><strong>Explanation File:</strong> <br>{{ output_file }}</p>
+                        <hr>
+                        {% if explanation.session_metadata is defined and explanation.session_metadata.llm_config is defined %}
+                            <p><strong>LLM Service:</strong> {{ explanation.session_metadata.llm_config.service }}</p>
+                            <p><strong>LLM Model:</strong> {{ explanation.session_metadata.llm_config.model }}</p>
+                        {% endif %}
                         <p><small class="text-muted">This explanation was generated using the iExplain tool as part of the INTEND project.</small></p>
                     </div>
                 </div>
