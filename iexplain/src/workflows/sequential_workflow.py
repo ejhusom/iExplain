@@ -10,6 +10,12 @@ This workflow uses a three-stage sequential pattern:
 
 from typing import Dict, Any, List, Tuple
 from workflows.base_workflow import BaseWorkflow
+import sys
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from log_processing import read_logs_for_analysis, get_log_summary
 
 
 class SequentialWorkflow(BaseWorkflow):
@@ -187,22 +193,42 @@ Provide a clear, structured summary of these components."""
         Returns:
             Formatted prompt string
         """
+        # Read the actual log files
+        print(f"Reading {len(log_files)} log file(s)...")
+        log_data = read_logs_for_analysis(log_files, max_lines_per_file=5000)
+
+        # Print summary to console
+        summary = get_log_summary(log_data)
+        print(summary)
+
+        # Warn if there are issues
+        if log_data['warnings']:
+            print(f"⚠️  {len(log_data['warnings'])} warning(s) during log reading")
+
         return f"""Based on this intent summary:
 
 ```
 {intent_summary}
 ```
 
-Analyze these log files: {', '.join(log_files)}
+You have been provided with the actual log file content below. Analyze it carefully.
 
 Your task:
-1. Identify what actions were taken by the system (cite specific log entries with timestamps)
-2. Measure actual outcomes for the metrics specified in the intent
+1. Identify what actions were taken by the system (cite specific log entries with LINE NUMBERS and timestamps)
+2. Extract and measure actual outcomes for the metrics specified in the intent (look for latency, response times, error codes, etc.)
 3. Compare measured values against the intent's thresholds
-4. Determine if the system met the success criteria
+4. Determine if the system met the success criteria based on the evidence
 5. Identify factors that influenced the outcome (positive or negative)
 
-Provide evidence from the logs to support your analysis. Structure your response clearly with sections for Actions, Outcomes, Comparison, and Factors."""
+IMPORTANT:
+- Cite evidence using line numbers (e.g., "Line 5 shows...")
+- Extract actual metric values from log entries
+- Be specific about what you found
+
+LOG FILE CONTENT:
+{log_data['content']}
+
+Structure your response clearly with sections for Actions, Outcomes, Comparison, and Factors."""
 
     def _build_explanation_prompt(
         self,
