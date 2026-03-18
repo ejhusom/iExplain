@@ -1,7 +1,7 @@
 [project]
-name = "iexplain-next"
+name = "iexplain"
 version = "0.1.0"
-description = "A cleaner iExplain rebuild focused on understandable runtime and evaluation."
+description = "The iExplain explanation service focused on understandable runtime and evaluation."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

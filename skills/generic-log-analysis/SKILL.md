@@ -2,7 +2,7 @@
 name: generic-log-analysis
 description: Grounded analysis of arbitrary logs. Use when the task is open-ended log inspection, explanation, evidence gathering, or summarizing observed behavior from logs.
 metadata:
-  owner: iexplain-next
+  owner: iexplain
   version: "1"
 ---
 

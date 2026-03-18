@@ -3,7 +3,7 @@ name: iexplain-integration
 description: Delegate explanation work to a running iExplain service or local iexplain CLI. Use when another agent or agentic system needs grounded intent summaries, log explanations, or benchmark-specific analysis without re-implementing iExplain profiles, pipelines, or adapters.
 compatibility: Requires access to a running iExplain API or a local environment with the iexplain CLI installed.
 metadata:
-  owner: iexplain-next
+  owner: iexplain
   version: "1"
 ---
 

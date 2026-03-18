@@ -60,7 +60,7 @@ def create_app(
         app_state["jobs"].shutdown()
 
     app = FastAPI(
-        title="iExplain Next",
+        title="iExplain",
         version="0.1.0",
         description=(
             "Async API for submitting iExplain runs, polling results, and reusing session defaults. "

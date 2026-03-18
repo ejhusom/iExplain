@@ -46,6 +46,40 @@ iexplain eval-matrix experiments/bgl_v2_model_matrix.json
 iexplain eval-analyze runs --markdown-output runs/report.md --json-output runs/report.json
 ```
 
+## Docker
+
+Build the API image:
+
+```bash
+docker build -t iexplain:0.1.0 .
+```
+
+Run the API server:
+
+```bash
+docker run --rm \
+  -p 8000:8000 \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  -v "$(pwd)/runs:/app/runs" \
+  -v "$(pwd)/workspaces:/app/workspaces" \
+  iexplain:0.1.0
+```
+
+Optional environment for intent summaries through GraphDB:
+
+```bash
+docker run --rm \
+  -p 8000:8000 \
+  -e OPENAI_API_KEY="$OPENAI_API_KEY" \
+  -e IEXPLAIN_INTENT_GRAPHDB_URL="http://host.docker.internal:7200" \
+  -e IEXPLAIN_INTENT_GRAPHDB_REPOSITORY="intents_and_intent_reports" \
+  -v "$(pwd)/runs:/app/runs" \
+  -v "$(pwd)/workspaces:/app/workspaces" \
+  iexplain:0.1.0
+```
+
+The image also includes the external integration skill bundle at `agent-skills/iexplain-integration/`, so it can be copied out or vendored into another agent environment.
+
 ## Local Intent GraphDB Lab
 
 `lab/intent_graphdb` is a sandbox for experimenting against a local GraphDB. It is intentionally separate from the core app.

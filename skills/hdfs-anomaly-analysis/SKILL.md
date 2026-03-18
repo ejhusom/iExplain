@@ -2,7 +2,7 @@
 name: hdfs-anomaly-analysis
 description: HDFS session anomaly classification and explanation. Use when the task is to label an HDFS session as normal or anomalous and explain the decision from the observed session flow.
 metadata:
-  owner: iexplain-next
+  owner: iexplain
   version: "1"
 ---
 

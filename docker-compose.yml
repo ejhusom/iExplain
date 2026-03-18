@@ -1,6 +1,7 @@
 services:
   api:
     build: .
+    image: iexplain:0.1.0
     ports:
       - "8000:8000"
     environment:
@@ -10,5 +11,6 @@ services:
       - ./config:/app/config
       - ./prompts:/app/prompts
       - ./skills:/app/skills
+      - ./agent-skills:/app/agent-skills
       - ./runs:/app/runs
       - ./workspaces:/app/workspaces

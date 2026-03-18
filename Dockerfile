@@ -14,6 +14,7 @@ COPY pyproject.toml README.md ./
 COPY src ./src
 COPY prompts ./prompts
 COPY skills ./skills
+COPY agent-skills ./agent-skills
 COPY config ./config
 COPY docs ./docs
 COPY experiments ./experiments
