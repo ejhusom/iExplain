@@ -1,0 +1,135 @@
+@prefix data5g: <http://5g4data.eu/5g4data#> .
+@prefix icm: <http://tio.models.tmforum.org/tio/v3.6.0/IntentCommonModel/> .
+@prefix imo: <http://tio.models.tmforum.org/tio/v3.6.0/IntentManagementOntology/> .
+@prefix met: <http://tio.models.tmforum.org/tio/v3.6.0/MetricsAndObservations/> .
+@prefix quan: <http://tio.models.tmforum.org/tio/v3.6.0/QuantityOntology/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+data5g:RP0001 a icm:IntentReport ;
+    icm:about data5g:Ia1e473dc2526467faf503790412ea648 ;
+    icm:reportNumber 1 ;
+    icm:reportGenerated "2026-03-17T08:00:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateIntentReceived ;
+    imo:handler "inNet" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Intent received for evaluation." .
+
+data5g:RP0002 a icm:IntentReport ;
+    icm:about data5g:Ia1e473dc2526467faf503790412ea648 ;
+    icm:reportNumber 2 ;
+    icm:reportGenerated "2026-03-17T08:05:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateCompliant ;
+    imo:handler "inNet" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Network slice provisioned and measurements stay within the declared thresholds." .
+
+data5g:RP1001 a icm:IntentReport ;
+    icm:about data5g:If9587ca040be457d908d54e7aecc2ef6 ;
+    icm:reportNumber 1 ;
+    icm:reportGenerated "2026-03-17T09:00:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateIntentReceived ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Deployment intent queued for placement in EC21." .
+
+data5g:RP1002 a icm:IntentReport ;
+    icm:about data5g:If9587ca040be457d908d54e7aecc2ef6 ;
+    icm:reportNumber 2 ;
+    icm:reportGenerated "2026-03-17T09:07:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateDegraded ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Compute latency exceeded the declared threshold after deployment rollout in EC21." .
+
+data5g:RP1003 a icm:IntentReport ;
+    icm:about data5g:If9587ca040be457d908d54e7aecc2ef6 ;
+    icm:reportNumber 3 ;
+    icm:reportGenerated "2026-03-17T09:18:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateCompliant ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Workload moved to a less loaded node and compute latency recovered." .
+
+data5g:RP2001 a icm:IntentReport ;
+    icm:about data5g:I394dd36b9e57452399fb75bcf6f2d453 ;
+    icm:reportNumber 1 ;
+    icm:reportGenerated "2026-03-17T10:00:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateIntentReceived ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Combined intent accepted for coordinated network and deployment handling." .
+
+data5g:RP2002 a icm:IntentReport ;
+    icm:about data5g:I394dd36b9e57452399fb75bcf6f2d453 ;
+    icm:reportNumber 2 ;
+    icm:reportGenerated "2026-03-17T10:12:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateDegraded ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Network latency rose above 5 ms and compute latency became unstable during rollout." .
+
+data5g:RP2003 a icm:IntentReport ;
+    icm:about data5g:I394dd36b9e57452399fb75bcf6f2d453 ;
+    icm:reportNumber 3 ;
+    icm:reportGenerated "2026-03-17T10:21:00Z"^^xsd:dateTime ;
+    icm:intentHandlingState imo:StateCompliant ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    icm:reason "Network and deployment remediation completed successfully." .
+
+data5g:OBS1001 a met:Observation ;
+    met:observedMetric data5g:computelatency_CO9aa045ce3c784d9ca12ab3d029059afd ;
+    met:observedValue [
+        rdf:value "132.0"^^xsd:decimal ;
+        quan:unit "ms"
+    ] ;
+    met:obtainedAt "2026-03-17T09:06:00Z"^^xsd:dateTime .
+
+data5g:OBS1002 a met:Observation ;
+    met:observedMetric data5g:computelatency_CO9aa045ce3c784d9ca12ab3d029059afd ;
+    met:observedValue [
+        rdf:value "18.0"^^xsd:decimal ;
+        quan:unit "ms"
+    ] ;
+    met:obtainedAt "2026-03-17T09:17:00Z"^^xsd:dateTime .
+
+data5g:OBS2001 a met:Observation ;
+    met:observedMetric data5g:networklatency_CO0cfdbf3d86c1402abf16a0d93baa6615 ;
+    met:observedValue [
+        rdf:value "7.5"^^xsd:decimal ;
+        quan:unit "ms"
+    ] ;
+    met:obtainedAt "2026-03-17T10:11:00Z"^^xsd:dateTime .
+
+data5g:OBS2002 a met:Observation ;
+    met:observedMetric data5g:bandwidth_CO470e949928134967a1172324d8d78797 ;
+    met:observedValue [
+        rdf:value "780.0"^^xsd:decimal ;
+        quan:unit "mbit/s"
+    ] ;
+    met:obtainedAt "2026-03-17T10:11:00Z"^^xsd:dateTime .
+
+data5g:OBS2003 a met:Observation ;
+    met:observedMetric data5g:computelatency_CO6ede86a60dd54e08bc4fa1aa584b49e9 ;
+    met:observedValue [
+        rdf:value "31.0"^^xsd:decimal ;
+        quan:unit "ms"
+    ] ;
+    met:obtainedAt "2026-03-17T10:11:00Z"^^xsd:dateTime .
+
+data5g:OBS2004 a met:Observation ;
+    met:observedMetric data5g:networklatency_CO0cfdbf3d86c1402abf16a0d93baa6615 ;
+    met:observedValue [
+        rdf:value "3.2"^^xsd:decimal ;
+        quan:unit "ms"
+    ] ;
+    met:obtainedAt "2026-03-17T10:20:00Z"^^xsd:dateTime .
+
+data5g:OBS2005 a met:Observation ;
+    met:observedMetric data5g:computelatency_CO6ede86a60dd54e08bc4fa1aa584b49e9 ;
+    met:observedValue [
+        rdf:value "14.0"^^xsd:decimal ;
+        quan:unit "ms"
+    ] ;
+    met:obtainedAt "2026-03-17T10:20:00Z"^^xsd:dateTime .

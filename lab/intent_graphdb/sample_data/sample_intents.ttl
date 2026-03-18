@@ -1,0 +1,165 @@
+@prefix data5g: <http://5g4data.eu/5g4data#> .
+@prefix dct: <http://purl.org/dc/terms/> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix icm: <http://tio.models.tmforum.org/tio/v3.6.0/IntentCommonModel/> .
+@prefix imo: <http://tio.models.tmforum.org/tio/v3.6.0/IntentManagementOntology/> .
+@prefix log: <http://tio.models.tmforum.org/tio/v3.6.0/LogicalOperators/> .
+@prefix quan: <http://tio.models.tmforum.org/tio/v3.6.0/QuantityOntology/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix set: <http://tio.models.tmforum.org/tio/v3.6.0/SetOperators/> .
+
+data5g:Ia1e473dc2526467faf503790412ea648 a icm:Intent, icm:IntentElement ;
+    imo:handler "inNet" ;
+    imo:owner "inSwitch" ;
+    log:allOf data5g:NE51ab59a3140b48029fc709d9e213565e,
+        data5g:RE700c8aaf69bf428da54d0c7f3d93d985 .
+
+data5g:NE51ab59a3140b48029fc709d9e213565e a data5g:NetworkExpectation ;
+    dct:description "Reliable network slice for industrial IoT sensors" ;
+    icm:target data5g:network-slice ;
+    log:allOf data5g:CO13435946d5a347c78f0c4f9ee686d38f,
+        data5g:COad5028ec9e754c06b5c9b7a40b3b4ec6,
+        data5g:CX4d05952549dc4d848467bfb094f1fc37 .
+
+data5g:CO13435946d5a347c78f0c4f9ee686d38f a icm:Condition ;
+    dct:description "Bandwidth condition quan:larger: 100mbit/s" ;
+    set:forAll [
+        icm:valuesOfTargetProperty data5g:bandwidth_CO13435946d5a347c78f0c4f9ee686d38f ;
+        quan:larger [
+            quan:unit "mbit/s" ;
+            rdf:value 100.0
+        ]
+    ] .
+
+data5g:COad5028ec9e754c06b5c9b7a40b3b4ec6 a icm:Condition ;
+    dct:description "Latency condition quan:smaller: 50ms" ;
+    set:forAll [
+        icm:valuesOfTargetProperty data5g:networklatency_COad5028ec9e754c06b5c9b7a40b3b4ec6 ;
+        quan:smaller [
+            quan:unit "ms" ;
+            rdf:value 50.0
+        ]
+    ] .
+
+data5g:CX4d05952549dc4d848467bfb094f1fc37 a icm:Context, icm:IntentElement ;
+    data5g:appliesToCustomer "+47 34567890" ;
+    data5g:appliesToRegion data5g:RG8581ce66174e41a38e8f8f0f1dba10b5 ;
+    dct:description "Context for region: Trondheim, customer: +47 34567890" .
+
+data5g:RE700c8aaf69bf428da54d0c7f3d93d985 a icm:Expectation, icm:IntentElement, icm:ReportingExpectation ;
+    dct:description "Report if expectation is met with reports including metrics related to expectations." ;
+    icm:target data5g:network-slice .
+
+data5g:RG8581ce66174e41a38e8f8f0f1dba10b5 a geo:Feature ;
+    geo:hasGeometry [
+        a geo:Polygon ;
+        geo:asWKT "POLYGON((63.430904 10.395312, 63.430549 10.397223, 63.429639 10.397057, 63.429991 10.395148))"^^geo:wktLiteral
+    ] .
+
+data5g:If9587ca040be457d908d54e7aecc2ef6 a icm:Intent, icm:IntentElement ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    log:allOf data5g:DE47aad4bcf64d4b78aa5d30c49076e63b,
+        data5g:RE5b2dbc988fda4c24953a4f0f68f19926 .
+
+data5g:DE47aad4bcf64d4b78aa5d30c49076e63b a data5g:DeploymentExpectation ;
+    dct:description "Deploy AI inference service to edge datacenter" ;
+    icm:target data5g:deployment ;
+    log:allOf data5g:CO9aa045ce3c784d9ca12ab3d029059afd,
+        data5g:CXe5deca8bbcce4e6d9afd7a12318178bf .
+
+data5g:CO9aa045ce3c784d9ca12ab3d029059afd a icm:Condition ;
+    dct:description "Compute latency condition quan:smaller: 1000ms" ;
+    set:forAll [
+        icm:valuesOfTargetProperty data5g:computelatency_CO9aa045ce3c784d9ca12ab3d029059afd ;
+        quan:smaller [
+            quan:unit "ms" ;
+            rdf:value 1000.0
+        ]
+    ] .
+
+data5g:CXe5deca8bbcce4e6d9afd7a12318178bf a icm:Context, icm:IntentElement ;
+    data5g:Application "ai-inference-service" ;
+    data5g:DataCenter "EC21" ;
+    data5g:DeploymentDescriptor "http://intend.eu/5G4DataWorkloadCatalogue/ai-inference-deployment.yaml" ;
+    dct:description "Context for datacenter: EC21, application: ai-inference-service" .
+
+data5g:RE5b2dbc988fda4c24953a4f0f68f19926 a icm:Expectation, icm:IntentElement, icm:ReportingExpectation ;
+    dct:description "Report if expectation is met with reports including metrics related to expectations." ;
+    icm:target data5g:deployment .
+
+data5g:I394dd36b9e57452399fb75bcf6f2d453 a icm:Intent, icm:IntentElement ;
+    imo:handler "inOrch" ;
+    imo:owner "inSwitch" ;
+    log:allOf data5g:DE5ab0079f584c4a128e7356b2e8fbad89,
+        data5g:NE387023fdee25415d90481ab86e51a533,
+        data5g:RE1a3fc1b300a847509e2b5cfead555c9e,
+        data5g:REe726bc3aacdc49f484da5927fe008e4a .
+
+data5g:DE5ab0079f584c4a128e7356b2e8fbad89 a data5g:DeploymentExpectation ;
+    dct:description "Combined network and workload deployment for remote surgery" ;
+    icm:target data5g:deployment ;
+    log:allOf data5g:CO6ede86a60dd54e08bc4fa1aa584b49e9,
+        data5g:CX4237975d841845fe8f4b7fbeb59d820b .
+
+data5g:NE387023fdee25415d90481ab86e51a533 a data5g:NetworkExpectation ;
+    dct:description "Combined network and workload deployment for remote surgery" ;
+    icm:target data5g:network-slice ;
+    log:allOf data5g:CO0cfdbf3d86c1402abf16a0d93baa6615,
+        data5g:CO470e949928134967a1172324d8d78797,
+        data5g:CXb4e4a720c1c645289dd7745940156712 .
+
+data5g:CO6ede86a60dd54e08bc4fa1aa584b49e9 a icm:Condition ;
+    dct:description "Compute latency condition quan:smaller: 25ms" ;
+    set:forAll [
+        icm:valuesOfTargetProperty data5g:computelatency_CO6ede86a60dd54e08bc4fa1aa584b49e9 ;
+        quan:smaller [
+            quan:unit "ms" ;
+            rdf:value 25.0
+        ]
+    ] .
+
+data5g:CO0cfdbf3d86c1402abf16a0d93baa6615 a icm:Condition ;
+    dct:description "Latency condition quan:smaller: 5ms" ;
+    set:forAll [
+        icm:valuesOfTargetProperty data5g:networklatency_CO0cfdbf3d86c1402abf16a0d93baa6615 ;
+        quan:smaller [
+            quan:unit "ms" ;
+            rdf:value 5.0
+        ]
+    ] .
+
+data5g:CO470e949928134967a1172324d8d78797 a icm:Condition ;
+    dct:description "Bandwidth condition quan:larger: 800mbit/s" ;
+    set:forAll [
+        icm:valuesOfTargetProperty data5g:bandwidth_CO470e949928134967a1172324d8d78797 ;
+        quan:larger [
+            quan:unit "mbit/s" ;
+            rdf:value 800.0
+        ]
+    ] .
+
+data5g:CX4237975d841845fe8f4b7fbeb59d820b a icm:Context, icm:IntentElement ;
+    data5g:Application "remote-surgery-platform" ;
+    data5g:DataCenter "EC21" ;
+    data5g:DeploymentDescriptor "http://intend.eu/5G4DataWorkloadCatalogue/surgery-deployment.yaml" ;
+    dct:description "Context for datacenter: EC21, application: remote-surgery-platform" .
+
+data5g:CXb4e4a720c1c645289dd7745940156712 a icm:Context, icm:IntentElement ;
+    data5g:appliesToCustomer "+47 56789012" ;
+    data5g:appliesToRegion data5g:RG1a6924f3e91d4e7aacb416c3d4ef587a ;
+    dct:description "Context for region: Tromso, customer: +47 56789012" .
+
+data5g:RE1a3fc1b300a847509e2b5cfead555c9e a icm:Expectation, icm:IntentElement, icm:ReportingExpectation ;
+    dct:description "Report deployment-side handling state and key metrics." ;
+    icm:target data5g:deployment .
+
+data5g:REe726bc3aacdc49f484da5927fe008e4a a icm:Expectation, icm:IntentElement, icm:ReportingExpectation ;
+    dct:description "Report network-side handling state and key metrics." ;
+    icm:target data5g:network-slice .
+
+data5g:RG1a6924f3e91d4e7aacb416c3d4ef587a a geo:Feature ;
+    geo:hasGeometry [
+        a geo:Polygon ;
+        geo:asWKT "POLYGON((69.6516 18.9553, 69.6511 18.9581, 69.6498 18.9577, 69.6502 18.9549))"^^geo:wktLiteral
+    ] .

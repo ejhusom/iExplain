@@ -1,0 +1,24 @@
+
+{
+  "name": "bgl-full-qwen3-4b",
+  "suite": {
+    "type": "bgl",
+    "settings": {
+      "log_file": "data/bgl/bgl_2k.log",
+      "ground_truth_file": "data/bgl/ground_truth.json",
+      "tier": "full"
+    }
+  },
+  "runtime": {
+    "profile": "bgl_eval",
+    "overrides": {
+      "provider": "ollama",
+      "model": "qwen3:4b-instruct"
+    }
+  },
+  "output_dir": "runs",
+  "tags": {
+    "suite": "bgl",
+    "mode": "pipeline"
+  }
+}

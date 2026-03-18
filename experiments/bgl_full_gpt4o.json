@@ -1,0 +1,23 @@
+{
+  "name": "bgl-full-gpt4o",
+  "suite": {
+    "type": "bgl",
+    "settings": {
+      "log_file": "data/bgl/bgl_2k.log",
+      "ground_truth_file": "data/bgl/ground_truth.json",
+      "tier": "full"
+    }
+  },
+  "runtime": {
+    "profile": "bgl_eval",
+    "overrides": {
+      "provider": "openai",
+      "model": "gpt-4o"
+    }
+  },
+  "output_dir": "runs",
+  "tags": {
+    "suite": "bgl",
+    "mode": "pipeline"
+  }
+}

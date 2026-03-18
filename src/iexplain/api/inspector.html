@@ -1,0 +1,1398 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>iExplain Inspector</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --bg-strong: #e9eff7;
+        --panel: rgba(255, 255, 255, 0.92);
+        --panel-strong: #ffffff;
+        --line: #d7e0ea;
+        --line-strong: #bcc9d8;
+        --ink: #153047;
+        --muted: #5f7287;
+        --accent: #1565c0;
+        --accent-strong: #0d47a1;
+        --accent-soft: #e8f1ff;
+        --ok: #18794e;
+        --ok-soft: #e7f7ee;
+        --warn: #9a6700;
+        --warn-soft: #fff4d6;
+        --err: #b42318;
+        --err-soft: #feeceb;
+        --shadow: 0 18px 40px rgba(21, 48, 71, 0.08);
+        --radius-lg: 24px;
+        --radius-md: 18px;
+        --radius-sm: 12px;
+      }
+
+      * { box-sizing: border-box; }
+
+      html {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: var(--bg);
+      }
+
+      a {
+        color: inherit;
+      }
+
+      h1, h2, h3, p {
+        margin: 0;
+      }
+
+      button,
+      input,
+      textarea,
+      select {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      textarea:focus-visible,
+      select:focus-visible,
+      summary:focus-visible,
+      .item:focus-visible {
+        outline: 3px solid rgba(21, 101, 192, 0.22);
+        outline-offset: 2px;
+      }
+
+      .topbar {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        padding: 26px 28px 22px;
+        border-bottom: 1px solid rgba(188, 201, 216, 0.7);
+        background: rgba(248, 251, 255, 0.84);
+        backdrop-filter: blur(14px);
+      }
+
+      .topbar-copy {
+        display: grid;
+        gap: 10px;
+        max-width: 780px;
+      }
+
+      .topbar-copy h1 {
+        font-size: clamp(2rem, 4vw, 2.8rem);
+        line-height: 0.98;
+        letter-spacing: -0.04em;
+      }
+
+      .topbar-copy p {
+        font-size: 1rem;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+
+      .topbar-meta {
+        min-width: 280px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .status-banner {
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 8px 24px rgba(21, 48, 71, 0.05);
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .mini-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .mini-stat {
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.74);
+      }
+
+      .mini-stat .label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .mini-stat .value {
+        margin-top: 6px;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(310px, 360px) minmax(0, 1fr);
+        gap: 24px;
+        padding: 24px 28px 32px;
+        min-height: calc(100vh - 130px);
+      }
+
+      .sidebar,
+      .main-area {
+        min-width: 0;
+      }
+
+      .sidebar {
+        display: grid;
+        align-content: start;
+        gap: 18px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg);
+        background: var(--panel);
+        box-shadow: var(--shadow);
+      }
+
+      .card-inner {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .card.slim .card-inner {
+        gap: 12px;
+        padding: 16px;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .card-header h2,
+      .card-header h3 {
+        line-height: 1.15;
+      }
+
+      .subtle-copy {
+        margin-top: 4px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .field-grid,
+      form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .field {
+        display: grid;
+        gap: 7px;
+      }
+
+      .field-label {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 12px 14px;
+        color: var(--ink);
+        background: rgba(255, 255, 255, 0.95);
+        transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+      }
+
+      input::placeholder,
+      textarea::placeholder {
+        color: #8497ac;
+      }
+
+      input:hover,
+      textarea:hover,
+      select:hover {
+        border-color: var(--line-strong);
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus {
+        border-color: rgba(21, 101, 192, 0.55);
+        box-shadow: 0 0 0 4px rgba(21, 101, 192, 0.08);
+      }
+
+      textarea {
+        min-height: 116px;
+        resize: vertical;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 14px;
+        padding: 11px 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+      }
+
+      button:hover {
+        transform: translateY(-1px);
+      }
+
+      button.primary {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 10px 24px rgba(21, 101, 192, 0.24);
+      }
+
+      button.secondary {
+        background: #edf3fa;
+        color: var(--ink);
+      }
+
+      .segmented {
+        display: inline-grid;
+        grid-auto-flow: column;
+        gap: 6px;
+        padding: 4px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #eef4fb;
+      }
+
+      .segmented button {
+        min-width: 92px;
+        padding: 9px 12px;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--muted);
+        box-shadow: none;
+      }
+
+      .segmented button.active {
+        background: white;
+        color: var(--ink);
+        box-shadow: 0 6px 18px rgba(21, 48, 71, 0.1);
+      }
+
+      .list-meta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .list-scroll {
+        max-height: calc(100vh - 440px);
+        min-height: 220px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      .item {
+        display: grid;
+        gap: 9px;
+        padding: 14px;
+        border: 1px solid transparent;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.86);
+        cursor: pointer;
+        transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+      }
+
+      .item:hover {
+        transform: translateY(-1px);
+        border-color: rgba(21, 101, 192, 0.16);
+        box-shadow: 0 12px 28px rgba(21, 48, 71, 0.08);
+      }
+
+      .item.active {
+        border-color: rgba(21, 101, 192, 0.38);
+        background: var(--accent-soft);
+        box-shadow: 0 14px 30px rgba(21, 101, 192, 0.12);
+      }
+
+      .item-topline,
+      .item-footline {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .item-title {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.35;
+      }
+
+      .item-body {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 4px 9px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .pill.pending,
+      .pill.running {
+        color: var(--warn);
+        background: var(--warn-soft);
+      }
+
+      .pill.completed {
+        color: var(--ok);
+        background: var(--ok-soft);
+      }
+
+      .pill.failed {
+        color: var(--err);
+        background: var(--err-soft);
+      }
+
+      .meta,
+      .muted {
+        color: var(--muted);
+      }
+
+      .meta {
+        font-size: 13px;
+        line-height: 1.45;
+      }
+
+      .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 4px 10px;
+        border: 1px solid #d8e3ef;
+        border-radius: 999px;
+        background: #f8fbff;
+        font-size: 13px;
+        color: var(--ink);
+      }
+
+      .main-area {
+        display: grid;
+        align-content: start;
+      }
+
+      .detail-grid {
+        display: grid;
+        gap: 18px;
+      }
+
+      .hero-card {
+        overflow: hidden;
+      }
+
+      .hero-card .card-inner {
+        gap: 18px;
+        padding: 24px;
+      }
+
+      .hero-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+      }
+
+      .hero-title {
+        display: grid;
+        gap: 8px;
+        min-width: 0;
+      }
+
+      .hero-title h2 {
+        font-size: clamp(1.45rem, 2.4vw, 2.1rem);
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+        word-break: break-word;
+      }
+
+      .hero-subtitle {
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+
+      .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+      }
+
+      .stat {
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.98);
+      }
+
+      .stat .label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      .stat .value {
+        margin-top: 8px;
+        font-size: 1.3rem;
+        font-weight: 700;
+        line-height: 1.2;
+        word-break: break-word;
+      }
+
+      .task-callout {
+        padding: 16px 18px;
+        border: 1px solid rgba(21, 101, 192, 0.15);
+        border-radius: 20px;
+        background: rgba(232, 241, 255, 0.7);
+      }
+
+      .task-callout h3 {
+        margin-bottom: 8px;
+        font-size: 0.95rem;
+      }
+
+      .task-callout p {
+        font-size: 14px;
+        line-height: 1.65;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--ink);
+      }
+
+      details.disclosure {
+        overflow: hidden;
+      }
+
+      details.disclosure > summary {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 20px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      details.disclosure > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .summary-copy {
+        display: grid;
+        gap: 4px;
+      }
+
+      .summary-title {
+        font-size: 1rem;
+        color: var(--ink);
+      }
+
+      .summary-caption {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+
+      .summary-toggle {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+
+      details.disclosure[open] .summary-toggle::after {
+        content: "Hide";
+      }
+
+      details.disclosure:not([open]) .summary-toggle::after {
+        content: "Show";
+      }
+
+      .disclosure-body {
+        display: grid;
+        gap: 16px;
+        padding: 0 20px 20px;
+      }
+
+      .timeline {
+        display: grid;
+        gap: 12px;
+      }
+
+      .timeline-item {
+        position: relative;
+        padding: 14px 16px 14px 20px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .timeline-item::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 14px;
+        bottom: 14px;
+        width: 4px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      .timeline-title {
+        font-weight: 700;
+        line-height: 1.4;
+      }
+
+      .timeline-body {
+        margin-top: 6px;
+        line-height: 1.55;
+      }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 16px;
+      }
+
+      .subpanel {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.72);
+      }
+
+      .stage-list,
+      .preview-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .stage-card,
+      .preview-item {
+        padding: 15px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.75);
+      }
+
+      .stage-card .card-header {
+        align-items: center;
+      }
+
+      pre {
+        margin: 0;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        background: #f7fafe;
+        color: #18344d;
+        font-family: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+        font-size: 12.5px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+        overflow-x: auto;
+      }
+
+      .empty {
+        padding: 42px 28px;
+        border: 1px dashed var(--line-strong);
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.55);
+        text-align: center;
+        color: var(--muted);
+      }
+
+      .empty strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--ink);
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      @media (max-width: 1120px) {
+        .topbar {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .topbar-meta {
+          width: 100%;
+          min-width: 0;
+        }
+
+        .shell {
+          grid-template-columns: 1fr;
+        }
+
+        .list-scroll {
+          max-height: 340px;
+        }
+      }
+
+      @media (max-width: 720px) {
+        .topbar,
+        .shell {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+
+        .topbar {
+          padding-top: 20px;
+          padding-bottom: 18px;
+        }
+
+        .hero-header,
+        .item-topline,
+        .item-footline,
+        .card-header,
+        .list-meta {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .mini-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .button-row {
+          flex-direction: column;
+        }
+
+        .segmented {
+          width: 100%;
+          grid-auto-flow: row;
+        }
+
+        .segmented button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+        <div class="topbar-copy">
+        <h1>iExplain Inspector</h1>
+        <p>Inspect live jobs, archived evaluation runs, and intent demo traces without digging through raw files unless you want to.</p>
+      </div>
+      <div class="topbar-meta">
+        <div class="status-banner" id="status-line" aria-live="polite">Loading inspector context...</div>
+        <div class="mini-stats" id="header-stats">
+          <div class="mini-stat">
+            <div class="label">Profiles</div>
+            <div class="value">-</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Jobs</div>
+            <div class="value">-</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Runs</div>
+            <div class="value">-</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="shell">
+      <aside class="sidebar">
+        <section class="card">
+          <div class="card-inner">
+            <div class="card-header">
+              <div>
+                <h2>Intent demo</h2>
+                <p class="subtle-copy">Quick path for the intent summary flow.</p>
+              </div>
+            </div>
+            <form id="intent-form">
+              <label class="field" for="intent-id">
+                <span class="field-label">Intent ID</span>
+                <input id="intent-id" placeholder="If9587ca040be457d908d54e7aecc2ef6" />
+              </label>
+              <button class="primary" type="submit">Run Intent Summary</button>
+            </form>
+          </div>
+        </section>
+
+        <details class="card disclosure slim">
+          <summary>
+            <div class="summary-copy">
+              <span class="summary-title">Advanced submit</span>
+              <span class="summary-caption">Manual job submission for any configured profile.</span>
+            </div>
+            <span class="summary-toggle" aria-hidden="true"></span>
+          </summary>
+          <div class="disclosure-body">
+            <form id="job-form">
+              <label class="field" for="profile-select">
+                <span class="field-label">Profile</span>
+                <select id="profile-select"></select>
+              </label>
+              <label class="field" for="job-task">
+                <span class="field-label">Task</span>
+                <textarea id="job-task" placeholder="Write a task to run through iExplain."></textarea>
+              </label>
+              <button class="primary" type="submit">Submit Job</button>
+            </form>
+          </div>
+        </details>
+
+        <section class="card">
+          <div class="card-inner">
+            <div class="card-header">
+              <div>
+                <h2>Browse</h2>
+                <p class="subtle-copy">Switch between live jobs and archived evaluation runs.</p>
+              </div>
+              <div class="segmented" role="tablist" aria-label="Inspector collections">
+                <button id="view-jobs" class="active" type="button" role="tab" aria-selected="true">Jobs</button>
+                <button id="view-runs" type="button" role="tab" aria-selected="false">Runs</button>
+              </div>
+            </div>
+
+            <label class="field" for="list-filter">
+              <span class="field-label">Filter current list</span>
+              <input id="list-filter" placeholder="Search by profile, task, suite, model..." />
+            </label>
+
+            <div class="list-meta">
+              <span id="list-summary">Loading items...</span>
+              <div class="button-row">
+                <button class="secondary" id="refresh-jobs" type="button">Refresh jobs</button>
+                <button class="secondary hidden" id="refresh-runs" type="button">Refresh runs</button>
+              </div>
+            </div>
+
+            <div class="list list-scroll" id="jobs-list" aria-label="Jobs list"></div>
+            <div class="list list-scroll hidden" id="runs-list" aria-label="Runs list"></div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main-area">
+        <div id="detail-root" class="empty">
+          <strong>Select a job or run to inspect it.</strong>
+          Use the browse panel to open a live trace, review an archived experiment, or launch a quick intent summary.
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const state = {
+        selectedType: null,
+        selectedId: null,
+        jobs: [],
+        runs: [],
+        profiles: [],
+        browseView: "jobs",
+        filterQuery: "",
+      };
+
+      const jobsList = document.getElementById("jobs-list");
+      const runsList = document.getElementById("runs-list");
+      const detailRoot = document.getElementById("detail-root");
+      const statusLine = document.getElementById("status-line");
+      const profileSelect = document.getElementById("profile-select");
+      const headerStats = document.getElementById("header-stats");
+      const listSummary = document.getElementById("list-summary");
+      const refreshJobsButton = document.getElementById("refresh-jobs");
+      const refreshRunsButton = document.getElementById("refresh-runs");
+      const viewJobsButton = document.getElementById("view-jobs");
+      const viewRunsButton = document.getElementById("view-runs");
+      const listFilter = document.getElementById("list-filter");
+
+      async function fetchJson(url, options) {
+        const response = await fetch(url, options);
+        if (!response.ok) {
+          throw new Error(`${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#39;");
+      }
+
+      function fmtDate(value) {
+        if (!value) return "–";
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return date.toLocaleString();
+      }
+
+      function fmtNumber(value) {
+        if (value === null || value === undefined || value === "") return "–";
+        return typeof value === "number" ? value.toLocaleString() : String(value);
+      }
+
+      function pill(status) {
+        return `<span class="pill ${escapeHtml(status)}">${escapeHtml(status)}</span>`;
+      }
+
+      function excerpt(value, maxLength = 130) {
+        const text = String(value ?? "").replace(/\s+/g, " ").trim();
+        if (!text) return "No description provided.";
+        if (text.length <= maxLength) return text;
+        return `${text.slice(0, maxLength - 1)}…`;
+      }
+
+      function renderJson(value) {
+        return `<pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+      }
+
+      function renderDisclosure(title, body, options = {}) {
+        const { open = false, caption = "" } = options;
+        return `
+          <details class="card disclosure" ${open ? "open" : ""}>
+            <summary>
+              <div class="summary-copy">
+                <span class="summary-title">${escapeHtml(title)}</span>
+                ${caption ? `<span class="summary-caption">${escapeHtml(caption)}</span>` : ""}
+              </div>
+              <span class="summary-toggle" aria-hidden="true"></span>
+            </summary>
+            <div class="disclosure-body">${body}</div>
+          </details>
+        `;
+      }
+
+      function updateHeaderStats() {
+        const runningJobs = state.jobs.filter((job) => job.status === "running" || job.status === "pending").length;
+        headerStats.innerHTML = `
+          <div class="mini-stat">
+            <div class="label">Profiles</div>
+            <div class="value">${fmtNumber(state.profiles.length)}</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Live Jobs</div>
+            <div class="value">${fmtNumber(state.jobs.length)}</div>
+          </div>
+          <div class="mini-stat">
+            <div class="label">Archived Runs</div>
+            <div class="value">${fmtNumber(state.runs.length)}${runningJobs ? ` · ${fmtNumber(runningJobs)} active` : ""}</div>
+          </div>
+        `;
+      }
+
+      function setBrowseView(view) {
+        state.browseView = view;
+        const showingJobs = view === "jobs";
+        jobsList.classList.toggle("hidden", !showingJobs);
+        runsList.classList.toggle("hidden", showingJobs);
+        refreshJobsButton.classList.toggle("hidden", !showingJobs);
+        refreshRunsButton.classList.toggle("hidden", showingJobs);
+        viewJobsButton.classList.toggle("active", showingJobs);
+        viewRunsButton.classList.toggle("active", !showingJobs);
+        viewJobsButton.setAttribute("aria-selected", String(showingJobs));
+        viewRunsButton.setAttribute("aria-selected", String(!showingJobs));
+        renderJobs();
+        renderRuns();
+        updateListSummary();
+      }
+
+      function filteredJobs() {
+        const query = state.filterQuery.trim().toLowerCase();
+        if (!query) return state.jobs;
+        return state.jobs.filter((job) => [
+          job.job_id,
+          job.profile,
+          job.status,
+          job.task,
+          job.error,
+        ].join(" ").toLowerCase().includes(query));
+      }
+
+      function filteredRuns() {
+        const query = state.filterQuery.trim().toLowerCase();
+        if (!query) return state.runs;
+        return state.runs.filter((run) => [
+          run.name,
+          run.directory,
+          run.suite,
+          run.model,
+          run.pipeline,
+          run.profile,
+        ].join(" ").toLowerCase().includes(query));
+      }
+
+      function updateListSummary() {
+        if (state.browseView === "jobs") {
+          const jobs = filteredJobs();
+          const active = jobs.filter((job) => job.status === "running" || job.status === "pending").length;
+          listSummary.textContent = state.filterQuery
+            ? `${jobs.length} job${jobs.length === 1 ? "" : "s"} match${jobs.length === 1 ? "es" : ""}${active ? ` · ${active} active` : ""}`
+            : `${state.jobs.length} job${state.jobs.length === 1 ? "" : "s"}${active ? ` · ${active} active` : ""}`;
+          return;
+        }
+        const runs = filteredRuns();
+        listSummary.textContent = state.filterQuery
+          ? `${runs.length} run${runs.length === 1 ? "" : "s"} match${runs.length === 1 ? "es" : ""}`
+          : `${state.runs.length} archived run${state.runs.length === 1 ? "" : "s"}`;
+      }
+
+      function renderJobs() {
+        const jobs = filteredJobs();
+        if (!jobs.length) {
+          jobsList.innerHTML = `<div class="empty"><strong>${state.filterQuery ? "No matching jobs." : "No jobs submitted yet."}</strong>${state.filterQuery ? "Try a broader filter." : "Submitted jobs will appear here automatically."}</div>`;
+          return;
+        }
+        jobsList.innerHTML = jobs.map((job) => `
+          <div
+            class="item ${state.selectedType === "job" && state.selectedId === job.job_id ? "active" : ""}"
+            data-type="job"
+            data-id="${escapeHtml(job.job_id)}"
+            role="button"
+            tabindex="0"
+          >
+            <div class="item-topline">
+              <div class="item-title">${escapeHtml(job.profile || "job")}</div>
+              ${pill(job.status)}
+            </div>
+            <div class="item-body">${escapeHtml(excerpt(job.task, 122))}</div>
+            <div class="chip-row">
+              <span class="chip">${escapeHtml(job.job_id)}</span>
+              ${job.has_result ? `<span class="chip">result ready</span>` : ""}
+              ${job.error ? `<span class="chip">has error</span>` : ""}
+            </div>
+            <div class="item-footline meta">
+              <span>${fmtDate(job.created_at)}</span>
+              <span>${job.session_id ? `session ${escapeHtml(job.session_id)}` : "standalone"}</span>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function renderRuns() {
+        const runs = filteredRuns();
+        if (!runs.length) {
+          runsList.innerHTML = `<div class="empty"><strong>${state.filterQuery ? "No matching runs." : "No archived eval runs found."}</strong>${state.filterQuery ? "Try a broader filter." : "Completed experiment runs with summaries will appear here."}</div>`;
+          return;
+        }
+        runsList.innerHTML = runs.map((run) => `
+          <div
+            class="item ${state.selectedType === "run" && state.selectedId === run.directory ? "active" : ""}"
+            data-type="run"
+            data-id="${escapeHtml(run.directory)}"
+            role="button"
+            tabindex="0"
+          >
+            <div class="item-topline">
+              <div class="item-title">${escapeHtml(run.name || run.directory)}</div>
+              <span class="chip">${escapeHtml(run.suite || "run")}</span>
+            </div>
+            <div class="item-body">${escapeHtml(run.model || "unknown model")} · ${escapeHtml(run.pipeline || "no pipeline")} · profile ${escapeHtml(run.profile || "–")}</div>
+            <div class="chip-row">
+              <span class="chip">cases ${fmtNumber(run.cases_total)}</span>
+              <span class="chip">score ${fmtNumber(run.score)}</span>
+              <span class="chip">tokens ${fmtNumber(run.total_tokens)}</span>
+            </div>
+            <div class="item-footline meta">
+              <span>${fmtDate(run.updated_at)}</span>
+              <span>${escapeHtml(run.directory)}</span>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function renderStageCards(stages = []) {
+        if (!stages.length) {
+          return `<div class="empty"><strong>No stage trace recorded.</strong>This run did not capture stage-level trace information.</div>`;
+        }
+        return `
+          <div class="stage-list">
+            ${stages.map((stage) => `
+              <div class="stage-card">
+                <div class="card-header">
+                  <h3>${escapeHtml(stage.name)}</h3>
+                  <span class="muted">${escapeHtml(stage.role || "n/a")}</span>
+                </div>
+                <div class="chip-row">
+                  <span class="chip">assistant turns ${fmtNumber(stage.assistant_turns)}</span>
+                  <span class="chip">tool calls ${fmtNumber(stage.tool_calls)}</span>
+                  ${(stage.tool_names || []).map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("")}
+                </div>
+                ${(stage.turn_previews || []).length ? `
+                  <div class="preview-list">
+                    ${(stage.turn_previews || []).map((preview) => `
+                      <div class="preview-item">
+                        <strong>turn ${fmtNumber(preview.turn)}</strong>
+                        ${preview.delegated_role ? `<span class="muted"> · delegated ${escapeHtml(preview.delegated_role)}</span>` : ""}
+                        ${preview.tool_calls?.length ? `<div class="meta">tool calls: ${escapeHtml(preview.tool_calls.join(", "))}</div>` : ""}
+                        <div class="meta">${escapeHtml(preview.content_preview || "")}</div>
+                      </div>
+                    `).join("")}
+                  </div>
+                ` : ""}
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderIntentBundle(intentBundle) {
+        if (!intentBundle) return "";
+        const timeline = intentBundle.timeline || [];
+        const observations = intentBundle.observations || [];
+        const contexts = intentBundle.contexts || [];
+        return renderDisclosure("Intent timeline", `
+          <div class="stat-grid">
+            <div class="stat"><div class="label">Intent</div><div class="value">${escapeHtml(intentBundle.intent_id || "–")}</div></div>
+            <div class="stat"><div class="label">Current State</div><div class="value">${escapeHtml(intentBundle.current_state || "–")}</div></div>
+            <div class="stat"><div class="label">Reports</div><div class="value">${fmtNumber(intentBundle.counts?.reports)}</div></div>
+            <div class="stat"><div class="label">Observations</div><div class="value">${fmtNumber(intentBundle.counts?.observations)}</div></div>
+          </div>
+          <div class="timeline">
+            ${timeline.length ? timeline.map((item) => `
+              <div class="timeline-item">
+                <div class="timeline-title">#${fmtNumber(item.report_number)} · ${escapeHtml(item.state || "state unknown")}</div>
+                <div class="meta">${fmtDate(item.generated_at)}</div>
+                <div class="timeline-body">${escapeHtml(item.reason || "No reason provided.")}</div>
+              </div>
+            `).join("") : `<div class="empty"><strong>No timeline data.</strong>The intent bundle did not include any report timeline items.</div>`}
+          </div>
+          <div class="two-col">
+            <section class="subpanel">
+              <h3>Observations</h3>
+              ${renderJson(observations)}
+            </section>
+            <section class="subpanel">
+              <h3>Contexts</h3>
+              ${renderJson(contexts)}
+            </section>
+          </div>
+        `, {
+          open: true,
+          caption: "State changes, reports, and supporting evidence",
+        });
+      }
+
+      function renderJobDetail(job) {
+        const summary = state.jobs.find((item) => item.job_id === job.job_id) || {};
+        const result = job.result || {};
+        const trace = result.metadata?.trace || {};
+        const runtime = trace.resolved_runtime || {};
+        const diagnostics = `
+          <section class="subpanel">
+            <h3>Compact conversation</h3>
+            ${renderJson(trace.conversation || [])}
+          </section>
+          <section class="subpanel">
+            <h3>Tool calls</h3>
+            ${renderJson(result.tool_calls || [])}
+          </section>
+          <section class="subpanel">
+            <h3>Events</h3>
+            ${renderJson(result.events || [])}
+          </section>
+          <section class="subpanel">
+            <h3>Metadata</h3>
+            ${renderJson(result.metadata || {})}
+          </section>
+        `;
+
+        detailRoot.className = "detail-grid";
+        detailRoot.innerHTML = `
+          <section class="card hero-card">
+            <div class="card-inner">
+              <div class="hero-header">
+                <div class="hero-title">
+                  <h2>${escapeHtml(job.job_id)}</h2>
+                  <div class="hero-subtitle">${job.result ? "Completed job result" : "Live job state"} · created ${fmtDate(job.created_at)}${job.completed_at ? ` · finished ${fmtDate(job.completed_at)}` : ""}</div>
+                </div>
+                <div>${pill(job.status)}</div>
+              </div>
+
+              <div class="task-callout">
+                <h3>Submitted task</h3>
+                <p>${escapeHtml(summary.task || "Task not available in job detail payload.")}</p>
+              </div>
+
+              <div class="stat-grid">
+                <div class="stat"><div class="label">Profile</div><div class="value">${escapeHtml(runtime.profile || result.profile || summary.profile || "–")}</div></div>
+                <div class="stat"><div class="label">Mode</div><div class="value">${escapeHtml(runtime.mode || result.mode || "–")}</div></div>
+                <div class="stat"><div class="label">Pipeline</div><div class="value">${escapeHtml(runtime.pipeline || "–")}</div></div>
+                <div class="stat"><div class="label">Model</div><div class="value">${escapeHtml(runtime.model?.model || "–")}</div></div>
+                <div class="stat"><div class="label">Assistant Turns</div><div class="value">${fmtNumber(trace.usage?.assistant_turns)}</div></div>
+                <div class="stat"><div class="label">Total Tokens</div><div class="value">${fmtNumber(trace.usage?.total_tokens)}</div></div>
+              </div>
+
+              <div class="chip-row">
+                ${(trace.tool_sequence || []).map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("")}
+                ${(trace.delegated_roles || []).map((role) => `<span class="chip">delegated ${escapeHtml(role)}</span>`).join("")}
+                ${summary.storage_path ? `<span class="chip">stored in ${escapeHtml(summary.storage_path)}</span>` : ""}
+              </div>
+
+              ${job.error ? `<div class="task-callout"><h3>Job error</h3><p>${escapeHtml(job.error)}</p></div>` : ""}
+            </div>
+          </section>
+
+          ${renderDisclosure("Final answer", `<pre>${escapeHtml(result.content || job.error || "No result yet.")}</pre>`, {
+            open: true,
+            caption: "Primary response returned by the runtime",
+          })}
+
+          ${renderIntentBundle(trace.intent_bundle)}
+
+          ${renderDisclosure("Stage trace", renderStageCards(trace.stages || []), {
+            caption: "High-level stage flow and turn previews",
+          })}
+
+          ${renderDisclosure("Diagnostics", `<div class="two-col">${diagnostics}</div>`, {
+            caption: "Raw trace data and lower-level payloads",
+          })}
+        `;
+      }
+
+      function renderRunDetail(payload) {
+        const summary = payload.summary || {};
+        const runtime = summary.resolved_runtime || {};
+        const performance = summary.performance || {};
+
+        detailRoot.className = "detail-grid";
+        detailRoot.innerHTML = `
+          <section class="card hero-card">
+            <div class="card-inner">
+              <div class="hero-header">
+                <div class="hero-title">
+                  <h2>${escapeHtml(summary.name || summary.run_id || "Run")}</h2>
+                  <div class="hero-subtitle">${escapeHtml(summary.run_id || "–")} · archived evaluation run</div>
+                </div>
+                <div class="chip">${escapeHtml(summary.suite || "run")}</div>
+              </div>
+
+              <div class="stat-grid">
+                <div class="stat"><div class="label">Profile</div><div class="value">${escapeHtml(runtime.profile || "–")}</div></div>
+                <div class="stat"><div class="label">Mode</div><div class="value">${escapeHtml(runtime.mode || "–")}</div></div>
+                <div class="stat"><div class="label">Pipeline</div><div class="value">${escapeHtml(runtime.pipeline || "–")}</div></div>
+                <div class="stat"><div class="label">Model</div><div class="value">${escapeHtml(runtime.model?.model || "–")}</div></div>
+                <div class="stat"><div class="label">Cases</div><div class="value">${fmtNumber(summary.cases_total)}</div></div>
+                <div class="stat"><div class="label">Score</div><div class="value">${fmtNumber(summary.metrics?.accuracy ?? summary.metrics?.pass_rate ?? summary.metrics?.cases_passed)}</div></div>
+                <div class="stat"><div class="label">Assistant Turns</div><div class="value">${fmtNumber(performance.assistant_turns)}</div></div>
+                <div class="stat"><div class="label">Total Tokens</div><div class="value">${fmtNumber(performance.total_tokens)}</div></div>
+              </div>
+            </div>
+          </section>
+
+          ${renderDisclosure("Run summary", renderJson(summary), {
+            open: true,
+            caption: "Summary metrics and resolved runtime information",
+          })}
+
+          ${renderDisclosure("Experiment spec", renderJson(payload.experiment || {}), {
+            caption: "Experiment definition loaded for this archived run",
+          })}
+
+          ${renderDisclosure("Results preview", renderJson(payload.results_preview || []), {
+            caption: "First few rows from the archived results file",
+          })}
+        `;
+      }
+
+      async function loadJobDetail(jobId) {
+        const job = await fetchJson(`/api/v1/jobs/${jobId}`);
+        state.selectedType = "job";
+        state.selectedId = jobId;
+        setBrowseView("jobs");
+        renderJobs();
+        renderRuns();
+        renderJobDetail(job);
+      }
+
+      async function loadRunDetail(runId) {
+        const payload = await fetchJson(`/api/v1/inspector/runs/${runId}`);
+        state.selectedType = "run";
+        state.selectedId = runId;
+        setBrowseView("runs");
+        renderJobs();
+        renderRuns();
+        renderRunDetail(payload);
+      }
+
+      async function refreshJobs() {
+        state.jobs = await fetchJson("/api/v1/jobs");
+        renderJobs();
+        updateHeaderStats();
+        updateListSummary();
+        if (state.selectedType === "job" && state.selectedId) {
+          const current = state.jobs.find((job) => job.job_id === state.selectedId);
+          if (current && (current.status === "running" || current.status === "pending")) {
+            await loadJobDetail(current.job_id);
+          }
+        }
+      }
+
+      async function refreshRuns() {
+        state.runs = await fetchJson("/api/v1/inspector/runs");
+        renderRuns();
+        updateHeaderStats();
+        updateListSummary();
+      }
+
+      async function refreshContext() {
+        const context = await fetchJson("/api/v1/inspector/context");
+        state.profiles = context.profiles || [];
+        profileSelect.innerHTML = state.profiles.map((profile) => `<option value="${escapeHtml(profile)}">${escapeHtml(profile)}</option>`).join("");
+        if (state.profiles.includes("default")) profileSelect.value = "default";
+        statusLine.textContent = `Loaded ${state.profiles.length} profile${state.profiles.length === 1 ? "" : "s"} · runs in ${context.runs_dir} · jobs in ${context.jobs_dir}`;
+        updateHeaderStats();
+      }
+
+      async function submitJob(runPayload) {
+        const response = await fetchJson("/api/v1/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ run: runPayload }),
+        });
+        await refreshJobs();
+        await loadJobDetail(response.job_id);
+      }
+
+      document.getElementById("intent-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const intentId = document.getElementById("intent-id").value.trim();
+        if (!intentId) return;
+        await submitJob({
+          profile: "intent_demo",
+          task: `Target intent id: ${intentId}\nSummarize what happened for this intent. Explain the state transitions, the main evidence from intent reports and observations, and mention any missing information.`,
+        });
+      });
+
+      document.getElementById("job-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const task = document.getElementById("job-task").value.trim();
+        if (!task) return;
+        await submitJob({
+          profile: profileSelect.value || "default",
+          task,
+        });
+      });
+
+      refreshJobsButton.addEventListener("click", refreshJobs);
+      refreshRunsButton.addEventListener("click", refreshRuns);
+
+      viewJobsButton.addEventListener("click", () => setBrowseView("jobs"));
+      viewRunsButton.addEventListener("click", () => setBrowseView("runs"));
+
+      listFilter.addEventListener("input", (event) => {
+        state.filterQuery = event.target.value || "";
+        renderJobs();
+        renderRuns();
+        updateListSummary();
+      });
+
+      document.addEventListener("click", async (event) => {
+        const target = event.target.closest(".item");
+        if (!target) return;
+        const type = target.dataset.type;
+        const id = target.dataset.id;
+        if (type === "job") {
+          await loadJobDetail(id);
+        } else if (type === "run") {
+          await loadRunDetail(id);
+        }
+      });
+
+      document.addEventListener("keydown", async (event) => {
+        const target = event.target.closest(".item");
+        if (!target) return;
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        const type = target.dataset.type;
+        const id = target.dataset.id;
+        if (type === "job") {
+          await loadJobDetail(id);
+        } else if (type === "run") {
+          await loadRunDetail(id);
+        }
+      });
+
+      async function boot() {
+        try {
+          await refreshContext();
+          await Promise.all([refreshJobs(), refreshRuns()]);
+          setBrowseView("jobs");
+          setInterval(refreshJobs, 3000);
+        } catch (error) {
+          statusLine.textContent = `Inspector failed to load: ${error}`;
+        }
+      }
+
+      boot();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,92 @@
+[model]
+provider = "openai"
+model = "gpt-4o-mini"
+temperature = 0.0
+max_tokens = 4096
+timeout_seconds = 60
+
+[paths]
+prompts_dir = "prompts"
+skills_dir = "skills"
+runs_dir = "runs"
+workspace_root = "workspaces"
+
+[api]
+host = "0.0.0.0"
+port = 8000
+max_workers = 4
+
+[profiles.default]
+mode = "agent"
+tools = ["list_files", "read_file", "search_text", "fetch_url"]
+skills = ["generic-log-analysis"]
+max_turns = 10
+max_delegations = 2
+
+[profiles.controlled]
+mode = "pipeline"
+pipeline = "log_explanation"
+tools = ["list_files", "read_file", "search_text"]
+skills = ["generic-log-analysis"]
+max_turns = 10
+
+[profiles.autonomous]
+mode = "planner"
+tools = ["list_files", "read_file", "search_text", "fetch_url"]
+skills = ["generic-log-analysis"]
+max_turns = 20
+max_delegations = 4
+
+[profiles.hdfs_eval]
+mode = "pipeline"
+pipeline = "hdfs_anomaly"
+tools = ["read_file"]
+skills = ["hdfs-anomaly-analysis"]
+max_turns = 20
+
+[profiles.hdfs_eval.prompt_overrides]
+log_preprocessor = "hdfs_few_shot"
+log_anomaly_detector = "hdfs_few_shot"
+log_explainer = "hdfs_few_shot"
+
+[profiles.hdfs_eval_zero_shot]
+mode = "pipeline"
+pipeline = "hdfs_anomaly"
+tools = ["read_file"]
+skills = ["hdfs-anomaly-analysis"]
+max_turns = 20
+
+[profiles.hdfs_eval_zero_shot.prompt_overrides]
+log_preprocessor = "hdfs_zero_shot"
+log_anomaly_detector = "hdfs_zero_shot"
+log_explainer = "hdfs_zero_shot"
+
+[profiles.bgl_eval]
+mode = "pipeline"
+pipeline = "bgl_question_answering"
+tools = ["bgl_answer_question"]
+skills = ["bgl-question-answering"]
+max_turns = 20
+
+[profiles.bgl_eval.prompt_overrides]
+bgl_qa = "default"
+
+[profiles.bgl_v2_eval]
+mode = "pipeline"
+pipeline = "bgl_v2_question_answering"
+tools = ["bgl_query", "read_file"]
+skills = ["bgl-question-answering"]
+max_turns = 8
+
+[profiles.bgl_v2_eval.prompt_overrides]
+bgl_qa = "v2"
+
+[profiles.intent_demo]
+mode = "pipeline"
+pipeline = "intent_summary"
+tools = ["fetch_intent_bundle"]
+skills = []
+max_turns = 4
+
+[profiles.intent_demo.prompt_overrides]
+log_explainer = "intent"

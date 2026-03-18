@@ -1,0 +1,306 @@
+{
+  "version": 2,
+  "cases": [
+    {
+      "id": "bglv2_q01_mmcs_errors_hour12",
+      "tier": "smoke",
+      "category": "filtered_count",
+      "task": "How many ERROR entries came from component MMCS during hour 12?",
+      "answer_type": "integer",
+      "expected": 24,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q02_fatal_hour10",
+      "tier": "smoke",
+      "category": "filtered_count",
+      "task": "How many FATAL entries occurred during hour 10?",
+      "answer_type": "integer",
+      "expected": 58,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q03_top2_error_components",
+      "tier": "smoke",
+      "category": "subset_ranking",
+      "task": "What are the top 2 components by ERROR volume?",
+      "answer_type": "list",
+      "expected": [
+        "MMCS",
+        "DISCOVERY"
+      ],
+      "order_matters": true,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q04_error_vs_warning_unique_nodes",
+      "tier": "smoke",
+      "category": "conditional_comparison",
+      "task": "Which set is larger: unique nodes with ERROR logs or unique nodes with WARNING logs? Answer `error` or `warning`.",
+      "answer_type": "string_match",
+      "expected": [
+        "warning"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q05_top_component_hour12",
+      "tier": "smoke",
+      "category": "time_window",
+      "task": "Which component had the most log entries during hour 12 only?",
+      "answer_type": "string_match",
+      "expected": [
+        "KERNEL"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q06_discovery_error_percentage_hour12",
+      "tier": "smoke",
+      "category": "derived_metric",
+      "task": "What percentage of DISCOVERY logs during hour 12 are ERROR? Answer as a rounded integer percentage.",
+      "answer_type": "integer",
+      "expected": 33,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q07_fatal_warning_ratio_hour10",
+      "tier": "full",
+      "category": "derived_metric",
+      "task": "What is the ratio of FATAL to WARNING logs during hour 10? Answer as a rounded integer.",
+      "answer_type": "integer",
+      "expected": 12,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q08_top2_fatal_hours",
+      "tier": "full",
+      "category": "subset_ranking",
+      "task": "What are the top 2 hours by FATAL log volume?",
+      "answer_type": "list",
+      "expected": [
+        "10",
+        "09"
+      ],
+      "order_matters": true,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q09_unique_fatal_nodes_hour10",
+      "tier": "full",
+      "category": "filtered_count",
+      "task": "How many unique nodes emitted FATAL logs during hour 10?",
+      "answer_type": "integer",
+      "expected": 58,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q10_mmcs_errors_hour12_vs_16",
+      "tier": "full",
+      "category": "conditional_comparison",
+      "task": "Between hour 12 and hour 16, which hour had more MMCS ERROR logs? Answer `12` or `16`.",
+      "answer_type": "string_match",
+      "expected": [
+        "12"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q11_errors_in_maintenance_window",
+      "tier": "full",
+      "category": "multi_artifact",
+      "task": "Using maintenance_window.json, how many ERROR logs occurred during the maintenance window?",
+      "artifacts": [
+        {
+          "name": "maintenance_window.json",
+          "path": "maintenance_window.json"
+        }
+      ],
+      "answer_type": "integer",
+      "expected": 36,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q12_focus_nodes_most_errors",
+      "tier": "full",
+      "category": "multi_artifact",
+      "task": "Using focus_nodes.txt, which listed node produced the most ERROR logs?",
+      "artifacts": [
+        {
+          "name": "focus_nodes.txt",
+          "path": "focus_nodes.txt"
+        }
+      ],
+      "answer_type": "string_match",
+      "expected": [
+        "NULL"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q13_grounded_component_most_errors_window",
+      "tier": "challenge",
+      "category": "grounded_answer",
+      "task": "Using maintenance_window.json, which component generated the most ERROR logs during the maintenance window? Return evidence line references.",
+      "artifacts": [
+        {
+          "name": "maintenance_window.json",
+          "path": "maintenance_window.json"
+        }
+      ],
+      "answer_type": "string_match",
+      "expected": [
+        "MMCS"
+      ],
+      "required_output": [
+        "answer",
+        "evidence"
+      ]
+    },
+    {
+      "id": "bglv2_q14_network_failure_insufficient_evidence",
+      "tier": "challenge",
+      "category": "insufficient_evidence",
+      "task": "Using bgl.log and incident_note.md, can we conclude that the observed errors were caused by a network failure?",
+      "artifacts": [
+        {
+          "name": "incident_note.md",
+          "path": "incident_note.md"
+        }
+      ],
+      "answer_type": "insufficient_evidence",
+      "expected": [
+        "insufficient_evidence",
+        "cannot_determine"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q15_ignore_noise_report",
+      "tier": "challenge",
+      "category": "distractor",
+      "task": "Ignore unsupported claims in noise_report.md. Which component generated the most ERROR logs overall?",
+      "artifacts": [
+        {
+          "name": "noise_report.md",
+          "path": "noise_report.md"
+        }
+      ],
+      "answer_type": "string_match",
+      "expected": [
+        "MMCS"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q16_higher_error_rate_12_vs_16",
+      "tier": "full",
+      "category": "derived_metric",
+      "task": "Which hour had the higher ERROR rate: 12 or 16? Answer `12` or `16`.",
+      "answer_type": "string_match",
+      "expected": [
+        "12"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q17_illegal_instruction_percentage_hour10",
+      "tier": "challenge",
+      "category": "derived_metric",
+      "task": "What percentage of FATAL logs during hour 10 mention `illegal instruction`? Answer as a rounded integer percentage.",
+      "answer_type": "integer",
+      "expected": 7,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q18_window_discovery_vpd_checks",
+      "tier": "challenge",
+      "category": "multi_artifact",
+      "task": "Using maintenance_window.json, how many DISCOVERY INFO logs during the maintenance window mention `VPD check`?",
+      "artifacts": [
+        {
+          "name": "maintenance_window.json",
+          "path": "maintenance_window.json"
+        }
+      ],
+      "answer_type": "integer",
+      "expected": 4,
+      "tolerance": 0,
+      "required_output": [
+        "answer"
+      ]
+    },
+    {
+      "id": "bglv2_q19_grounded_hour12_pgood_node",
+      "tier": "challenge",
+      "category": "grounded_answer",
+      "task": "Which node emitted the DISCOVERY ERROR during hour 12 that contains `PGOOD ERROR LATCH IS ACTIVE`? Return evidence line references.",
+      "answer_type": "string_match",
+      "expected": [
+        "R76-M1-N4"
+      ],
+      "required_output": [
+        "answer",
+        "evidence"
+      ]
+    },
+    {
+      "id": "bglv2_q20_ignore_noise_compare_error_phrases",
+      "tier": "challenge",
+      "category": "distractor",
+      "task": "Ignore unsupported claims in noise_report.md. Which ERROR phrase occurs more often overall: `ASSERT condition` or `PGOOD ERROR LATCH IS ACTIVE`? Answer `assert` or `pgood`.",
+      "artifacts": [
+        {
+          "name": "noise_report.md",
+          "path": "noise_report.md"
+        }
+      ],
+      "answer_type": "string_match",
+      "expected": [
+        "assert"
+      ],
+      "required_output": [
+        "answer"
+      ]
+    }
+  ]
+}

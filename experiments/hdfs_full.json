@@ -1,0 +1,24 @@
+{
+  "name": "hdfs-full-gpt4o-mini",
+  "suite": {
+    "type": "hdfs",
+    "settings": {
+      "labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv",
+      "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions",
+      "sample_limit": 0,
+      "seed": 42
+    }
+  },
+  "runtime": {
+    "profile": "hdfs_eval",
+    "overrides": {
+      "provider": "openai",
+      "model": "gpt-4o-mini"
+    }
+  },
+  "output_dir": "runs",
+  "tags": {
+    "suite": "hdfs",
+    "mode": "pipeline"
+  }
+}

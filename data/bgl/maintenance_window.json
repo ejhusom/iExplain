@@ -1,0 +1,6 @@
+{
+  "label": "planned-maintenance",
+  "start_hour": "12",
+  "end_hour": "16",
+  "inclusive": true
+}

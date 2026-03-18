@@ -1,0 +1,370 @@
+{
+  "metadata": {
+    "file": "bgl_2k.log",
+    "generated_at": "2026-03-16T21:45:00.421800",
+    "generator_version": "1.1"
+  },
+  "statistics": {
+    "total_lines": 2000,
+    "level_counts": {
+      "INFO": 1597,
+      "FATAL": 347,
+      "WARNING": 8,
+      "SEVERE": 7,
+      "ERROR": 41
+    },
+    "component_counts": {
+      "KERNEL": 1820,
+      "APP": 107,
+      "DISCOVERY": 35,
+      "MMCS": 35,
+      "HARDWARE": 3
+    },
+    "node_counts": {
+      "R30-M0-N9-C:J16-U01": 60,
+      "NULL": 35,
+      "R02-M1-N0-C:J12-U11": 30,
+      "UNKNOWN_LOCATION": 10,
+      "R16-M1-N2-C:J17-U01": 9,
+      "R37-M1-NC-C:J02-U11": 8,
+      "R26-M0-N0-I:J18-U11": 7,
+      "R02-M0-N4-C:J04-U11": 6,
+      "R21-M1-N4-C:J10-U01": 3,
+      "R61-M0-NB-C:J05-U01": 3
+    },
+    "hour_counts": {
+      "15": 83,
+      "16": 114,
+      "18": 79,
+      "00": 23,
+      "20": 75,
+      "01": 13,
+      "05": 59,
+      "06": 85,
+      "07": 64,
+      "08": 133,
+      "09": 144,
+      "10": 162,
+      "11": 147,
+      "19": 86,
+      "22": 34,
+      "12": 128,
+      "21": 100,
+      "14": 63,
+      "17": 123,
+      "23": 70,
+      "02": 37,
+      "03": 42,
+      "13": 56,
+      "04": 80
+    },
+    "hour_level_counts": {
+      "15": {
+        "INFO": 80,
+        "FATAL": 3
+      },
+      "16": {
+        "INFO": 98,
+        "FATAL": 6,
+        "SEVERE": 1,
+        "ERROR": 9
+      },
+      "18": {
+        "INFO": 50,
+        "FATAL": 28,
+        "ERROR": 1
+      },
+      "00": {
+        "FATAL": 3,
+        "INFO": 20
+      },
+      "20": {
+        "INFO": 71,
+        "FATAL": 4
+      },
+      "01": {
+        "INFO": 12,
+        "FATAL": 1
+      },
+      "05": {
+        "INFO": 52,
+        "FATAL": 7
+      },
+      "06": {
+        "INFO": 83,
+        "FATAL": 2
+      },
+      "07": {
+        "INFO": 59,
+        "FATAL": 5
+      },
+      "08": {
+        "INFO": 124,
+        "FATAL": 9
+      },
+      "09": {
+        "INFO": 96,
+        "FATAL": 46,
+        "WARNING": 2
+      },
+      "10": {
+        "INFO": 94,
+        "FATAL": 58,
+        "ERROR": 2,
+        "WARNING": 5,
+        "SEVERE": 3
+      },
+      "11": {
+        "INFO": 112,
+        "FATAL": 33,
+        "SEVERE": 1,
+        "ERROR": 1
+      },
+      "19": {
+        "INFO": 64,
+        "FATAL": 22
+      },
+      "22": {
+        "INFO": 17,
+        "FATAL": 17
+      },
+      "12": {
+        "INFO": 88,
+        "FATAL": 15,
+        "ERROR": 25
+      },
+      "21": {
+        "INFO": 86,
+        "FATAL": 13,
+        "SEVERE": 1
+      },
+      "14": {
+        "INFO": 54,
+        "FATAL": 9
+      },
+      "17": {
+        "INFO": 94,
+        "FATAL": 28,
+        "ERROR": 1
+      },
+      "23": {
+        "FATAL": 21,
+        "WARNING": 1,
+        "INFO": 48
+      },
+      "02": {
+        "INFO": 36,
+        "SEVERE": 1
+      },
+      "03": {
+        "INFO": 41,
+        "FATAL": 1
+      },
+      "13": {
+        "INFO": 46,
+        "FATAL": 8,
+        "ERROR": 2
+      },
+      "04": {
+        "INFO": 72,
+        "FATAL": 8
+      }
+    },
+    "error_patterns": {
+      "idoproxydb hit assert condition: assert": 35,
+      "node card status: no alerts": 5,
+      "node card status: alert 0,": 1
+    },
+    "peak_error_hour": "12",
+    "time_span": {
+      "start": "2005-06-03-15.42.50.675872",
+      "end": "2006-01-03-07.13.09.127918"
+    },
+    "unique_nodes_count": 1778,
+    "unique_components_count": 5,
+    "busiest_hour": "10",
+    "quietest_hour": "01",
+    "busiest_node": "R30-M0-N9-C:J16-U01",
+    "hours_with_errors": [
+      "16",
+      "18",
+      "10",
+      "11",
+      "12",
+      "17",
+      "13"
+    ],
+    "component_with_most_errors": "MMCS",
+    "component_error_counts": {
+      "MMCS": 35,
+      "DISCOVERY": 6
+    },
+    "info_count": 1597,
+    "warning_count": 8
+  },
+  "evaluation_questions": [
+    {
+      "id": "q1_error_count",
+      "question": "How many ERROR level log entries are in this file?",
+      "answer_type": "integer",
+      "expected": 41,
+      "tolerance": 0
+    },
+    {
+      "id": "q2_total_lines",
+      "question": "How many total log lines are in this file?",
+      "answer_type": "integer",
+      "expected": 2000,
+      "tolerance": 0
+    },
+    {
+      "id": "q3_top_component",
+      "question": "Which component has the most log entries?",
+      "answer_type": "string_match",
+      "expected": [
+        "KERNEL"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q4_top3_components",
+      "question": "What are the top 3 components by log volume?",
+      "answer_type": "list",
+      "expected": [
+        "KERNEL",
+        "APP",
+        "DISCOVERY"
+      ],
+      "order_matters": false
+    },
+    {
+      "id": "q5_peak_error_hour",
+      "question": "During which hour did the most errors occur?",
+      "answer_type": "string_match",
+      "expected": [
+        "12",
+        "hour 12",
+        "12:00"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q6_warning_count",
+      "question": "How many WARNING level entries are there?",
+      "answer_type": "integer",
+      "expected": 8,
+      "tolerance": 0
+    },
+    {
+      "id": "q7_level_types",
+      "question": "What log levels are present in this file?",
+      "answer_type": "list",
+      "expected": [
+        "INFO",
+        "FATAL",
+        "WARNING",
+        "SEVERE",
+        "ERROR"
+      ],
+      "order_matters": false
+    },
+    {
+      "id": "q8_error_ratio",
+      "question": "What percentage of log entries are errors? (answer as integer percentage)",
+      "answer_type": "integer",
+      "expected": 2,
+      "tolerance": 2
+    },
+    {
+      "id": "q9_unique_nodes",
+      "question": "How many unique nodes generated logs?",
+      "answer_type": "integer",
+      "expected": 1778,
+      "tolerance": 0
+    },
+    {
+      "id": "q10_busiest_node",
+      "question": "Which node generated the most logs?",
+      "answer_type": "string_match",
+      "expected": [
+        "R30-M0-N9-C:J16-U01"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q11_has_fatal",
+      "question": "Are there any FATAL level logs in this file? (answer yes or no)",
+      "answer_type": "string_match",
+      "expected": [
+        "yes",
+        "true",
+        "1"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q12_component_most_errors",
+      "question": "Which component generated the most ERROR logs?",
+      "answer_type": "string_match",
+      "expected": [
+        "MMCS"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q13_info_error_ratio",
+      "question": "What is the ratio of INFO logs to ERROR logs? (answer as integer, rounded)",
+      "answer_type": "integer",
+      "expected": 39,
+      "tolerance": 1
+    },
+    {
+      "id": "q14_info_vs_warning",
+      "question": "Which level appears more frequently: INFO or WARNING?",
+      "answer_type": "string_match",
+      "expected": [
+        "INFO",
+        "info"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q15_quietest_hour",
+      "question": "During which hour were the fewest logs generated?",
+      "answer_type": "string_match",
+      "expected": [
+        "01",
+        "hour 01",
+        "01:00"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q16_busiest_hour",
+      "question": "During which hour were the most logs generated?",
+      "answer_type": "string_match",
+      "expected": [
+        "10",
+        "hour 10",
+        "10:00"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q17_nodes_vs_components",
+      "question": "Are there more unique nodes or unique components?",
+      "answer_type": "string_match",
+      "expected": [
+        "nodes"
+      ],
+      "case_sensitive": false
+    },
+    {
+      "id": "q18_hours_with_errors",
+      "question": "How many hours had at least one ERROR log?",
+      "answer_type": "integer",
+      "expected": 7,
+      "tolerance": 0
+    }
+  ]
+}

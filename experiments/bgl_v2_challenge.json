@@ -1,0 +1,23 @@
+{
+  "name": "challenge-bgl-v2-gpt4o-mini",
+  "suite": {
+    "type": "bgl_v2",
+    "settings": {
+      "log_file": "data/bgl/bgl_2k.log",
+      "ground_truth_file": "data/bgl/ground_truth_v2.json",
+      "tier": "challenge"
+    }
+  },
+  "runtime": {
+    "profile": "bgl_v2_eval",
+    "overrides": {
+      "provider": "openai",
+      "model": "gpt-4o-mini"
+    }
+  },
+  "output_dir": "runs",
+  "tags": {
+    "suite": "bgl_v2",
+    "mode": "pipeline"
+  }
+}

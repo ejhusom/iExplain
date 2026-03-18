@@ -1,0 +1,87 @@
+{
+  "name": "bgl-v2-model-matrix",
+  "base_experiment": {
+    "name": "bgl-v2-challenge",
+    "suite": {
+      "type": "bgl_v2",
+      "settings": {
+        "log_file": "data/bgl/bgl_2k.log",
+        "ground_truth_file": "data/bgl/ground_truth_v2.json",
+        "tier": "challenge"
+      }
+    },
+    "runtime": {
+      "profile": "bgl_v2_eval",
+      "overrides": {
+        "provider": "openai"
+      }
+    },
+    "output_dir": "runs",
+    "tags": {
+      "suite": "bgl_v2",
+      "mode": "pipeline"
+    }
+  },
+  "axes": [
+    {
+      "name": "model",
+      "values": [
+        {
+          "label": "gpt-4o-mini",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "model": "gpt-4o-mini"
+              }
+            }
+          }
+        },
+        {
+          "label": "gpt-4o",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "model": "gpt-4o"
+              }
+            }
+          }
+        },
+        {
+          "label": "gpt-5-mini",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "model": "gpt-5-mini"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "turn_budget",
+      "values": [
+        {
+          "label": "8",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "max_turns": 8
+              }
+            }
+          }
+        },
+        {
+          "label": "12",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "max_turns": 12
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
