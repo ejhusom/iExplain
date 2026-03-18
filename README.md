@@ -5,6 +5,7 @@ iExplain is a framework for generating human-understandable explanations for int
 ## Project Layout
 
 ```text
+agent-skills/  External-facing Agent Skills bundles for other systems
 config/        App config and named runtime profiles
 docs/          Architecture and evaluation documentation
 experiments/   JSON experiment definitions
@@ -196,6 +197,15 @@ Completed demo jobs remain available after API restart because their job records
 - Evaluation code lives under [src/iexplain/eval](src/iexplain/eval).
 
 The runtime and evaluation are intentionally separate. Evaluation calls the runtime through the same `IExplainService` interface as the API and CLI.
+
+## External Agent Skill
+
+This repo also includes a portable Agent Skills bundle for systems that should call iExplain instead of re-implementing its explanation flow:
+
+- skill entrypoint: [agent-skills/iexplain-integration/SKILL.md](agent-skills/iexplain-integration/SKILL.md)
+- integration reference: [agent-skills/iexplain-integration/references/API.md](agent-skills/iexplain-integration/references/API.md)
+
+It is intentionally separate from `skills/`, because `skills/` contains runtime-internal behavior loaded by iExplain itself, while `agent-skills/` is for external agents that want to integrate with iExplain through the API or CLI.
 
 ## API Usage
 
