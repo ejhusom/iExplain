@@ -99,7 +99,7 @@ The sample files in [lab/intent_graphdb/sample_data](lab/intent_graphdb/sample_d
 
 The purpose of these files is not benchmark realism yet. They are just a controlled local dataset for integration work on intent-level explanation.
 
-### Things To Try
+### Things to try
 
 Once the lab is running and seeded, these commands are useful:
 
