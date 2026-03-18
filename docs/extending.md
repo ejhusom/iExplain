@@ -1,4 +1,4 @@
-# Extending iExplain Next
+# Extending iExplain
 
 This project is designed to be extended by editing files, not by adding hidden runtime behavior.
 
@@ -28,7 +28,7 @@ Example:
 name: example-skill
 description: Explain when to use this skill and what it does.
 metadata:
-  owner: iexplain-next
+  owner: iexplain
   version: "1"
 ---
 

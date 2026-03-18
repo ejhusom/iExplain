@@ -1,6 +1,6 @@
 # Intent GraphDB Integration
 
-This document explains how `iexplain-next` currently handles TMForum-style intents and intent reports from GraphDB, with a focus on the adapter function `fetch_intent_bundle()`.
+This document explains how iExplain currently handles TMForum-style intents and intent reports from GraphDB, with a focus on the adapter function `fetch_intent_bundle()`.
 
 The short version is:
 
@@ -78,7 +78,7 @@ Ontology wording:
 
 Important implementation note:
 
-- the current `iexplain-next` adapter and the surrounding 5G4Data codebase use `icm:Condition` in SPARQL queries and sample TTL files
+- the current iExplain adapter and the surrounding 5G4Data codebase use `icm:Condition` in SPARQL queries and sample TTL files
 - the TMForum logical ontology also defines `log:Condition`
 - this is a modeling convention in the current ecosystem, and iExplain follows the practical 5G4Data convention for now
 
