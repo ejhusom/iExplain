@@ -24,26 +24,24 @@ source .venv/bin/activate
 uv pip install -e ".[dev]"
 
 # Run one task
-iexplain run "Explain what happened in the provided logs" --artifact /path/to/log.txt
+uv run python3 -m iexplain run "Explain what happened in the provided logs" --artifact /path/to/log.txt
 
-# Start the API
-iexplain serve --config config/app.toml
+# Start the API (visit http://localhost:8000/inspector to see "inspector")
+uv run python3 -m iexplain serve --config config/app.toml
 
-# Open the lightweight inspector
-# then visit http://localhost:8000/inspector
-iexplain serve --config config/app.toml
+uv run python3 -m iexplain serve --config config/app.toml
 
 # Run an HDFS experiment
-iexplain eval-run experiments/hdfs_smoke.json
+uv run python3 -m iexplain eval-run experiments/hdfs_smoke.json
 
 # Run the current BGL v2 challenge benchmark
-iexplain eval-run experiments/bgl_v2_challenge.json
+uv run python3 -m iexplain eval-run experiments/bgl_v2_challenge.json
 
 # Run a matrix of BGL v2 ablations
-iexplain eval-matrix experiments/bgl_v2_model_matrix.json
+uv run python3 -m iexplain eval-matrix experiments/bgl_v2_model_matrix.json
 
 # Analyze all runs
-iexplain eval-analyze runs --markdown-output runs/report.md --json-output runs/report.json
+uv run python3 -m iexplain eval-analyze runs --markdown-output runs/report.md --json-output runs/report.json
 ```
 
 ## Docker

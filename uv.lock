@@ -524,7 +524,7 @@ wheels = [
 ]
 
 [[package]]
-name = "iexplain-next"
+name = "iexplain"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
