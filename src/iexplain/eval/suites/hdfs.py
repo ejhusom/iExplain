@@ -21,17 +21,25 @@ class HdfsSettings(BaseModel):
 
 
 def _normalize_label(text: str) -> int | None:
+    text = text or ""
     if '"label": 0' in text or '"label":0' in text:
         return 0
     if '"label": 1' in text or '"label":1' in text:
         return 1
+    classification_match = re.search(
+        r"Classification:\s*(?:\r?\n|\s)+(?P<label>NORMAL|ANOMALOUS)\b",
+        text,
+        re.I,
+    )
+    if classification_match:
+        return 1 if classification_match.group("label").lower().startswith("anomal") else 0
+    if re.search(r"\banomal", text, re.I):
+        return 1
+    if re.search(r"\bnormal\b", text, re.I):
+        return 0
     matches = re.findall(r"\b[01]\b", re.sub(r"\d{4,}", " ", text))
     if matches:
         return int(matches[-1])
-    if re.search(r"\bnormal\b", text, re.I):
-        return 0
-    if re.search(r"\banomal", text, re.I):
-        return 1
     return None
 
 

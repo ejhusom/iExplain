@@ -61,6 +61,29 @@ log_preprocessor = "hdfs_zero_shot"
 log_anomaly_detector = "hdfs_zero_shot"
 log_explainer = "hdfs_zero_shot"
 
+[profiles.hdfs_single_pass_eval]
+mode = "pipeline"
+pipeline = "hdfs_single_pass"
+tools = ["read_file"]
+skills = ["hdfs-anomaly-analysis"]
+max_turns = 8
+
+[profiles.hdfs_single_pass_eval.prompt_overrides]
+log_anomaly_detector = "hdfs_few_shot"
+
+[profiles.hdfs_agent_eval]
+mode = "agent"
+tools = ["read_file"]
+skills = ["hdfs-anomaly-analysis"]
+max_turns = 8
+
+[profiles.hdfs_planner_eval]
+mode = "planner"
+tools = ["read_file"]
+skills = ["hdfs-anomaly-analysis"]
+max_turns = 8
+max_delegations = 2
+
 [profiles.bgl_eval]
 mode = "pipeline"
 pipeline = "bgl_question_answering"
@@ -81,6 +104,48 @@ max_turns = 8
 [profiles.bgl_v2_eval.prompt_overrides]
 bgl_qa = "v2"
 
+[profiles.bgl_v2_agent_eval]
+mode = "agent"
+tools = ["bgl_query", "read_file"]
+skills = ["bgl-question-answering"]
+max_turns = 8
+
+[profiles.bgl_v2_planner_eval]
+mode = "planner"
+tools = ["bgl_query", "read_file"]
+skills = ["bgl-question-answering"]
+max_turns = 8
+max_delegations = 2
+
+[profiles.bgl_v2_raw_text_eval]
+mode = "pipeline"
+pipeline = "bgl_v2_raw_text_question_answering"
+tools = ["read_file", "search_text"]
+skills = ["bgl-question-answering"]
+max_turns = 8
+
+[profiles.bgl_v2_raw_text_eval.prompt_overrides]
+bgl_qa = "v2_raw_text"
+
+[profiles.bgl_v2_summary_eval]
+mode = "pipeline"
+pipeline = "bgl_v2_summary_question_answering"
+tools = ["bgl_file_stats", "bgl_query", "read_file"]
+skills = ["bgl-question-answering"]
+max_turns = 8
+
+[profiles.bgl_v2_summary_eval.prompt_overrides]
+bgl_qa = "v2_summary"
+
+[profiles.openrca_eval]
+mode = "agent"
+tools = ["list_files", "read_file", "search_text"]
+skills = ["generic-log-analysis"]
+max_turns = 12
+
+[profiles.openrca_eval.prompt_overrides]
+general_analyst = "openrca"
+
 [profiles.intent_demo]
 mode = "pipeline"
 pipeline = "intent_summary"
@@ -90,3 +155,13 @@ max_turns = 4
 
 [profiles.intent_demo.prompt_overrides]
 log_explainer = "intent"
+
+[profiles.ingraph_fill_demo]
+mode = "pipeline"
+pipeline = "ingraph_fill_summary"
+tools = ["fetch_fill_entity_bundle"]
+skills = []
+max_turns = 4
+
+[profiles.ingraph_fill_demo.prompt_overrides]
+log_explainer = "ingraph_fill"

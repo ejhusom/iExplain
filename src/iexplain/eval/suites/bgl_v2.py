@@ -16,6 +16,8 @@ class BglV2Settings(BaseModel):
     ground_truth_file: str
     tier: str = "smoke"
     selected_ids: list[str] = Field(default_factory=list)
+    perturbation_mode: str = "baseline"
+    noise_repetitions: int = 200
 
 
 def _extract_json(text: str) -> Any:
@@ -50,16 +52,36 @@ class BglV2Suite(SuiteAdapter):
             case_records = [item for item in case_records if item["id"] in wanted]
 
         log_content = log_file.read_text(encoding="utf-8", errors="replace")
+        log_content = self._apply_log_perturbation(
+            log_content=log_content,
+            perturbation_mode=cfg.perturbation_mode,
+            noise_repetitions=cfg.noise_repetitions,
+        )
         ground_truth_root = ground_truth_path.parent
         cases = []
         for record in case_records:
             artifacts = [ArtifactInput(name="bgl.log", content=log_content)]
-            for item in record.get("artifacts", []):
+            supporting_artifacts = list(record.get("artifacts", []))
+            if cfg.perturbation_mode == "missing_supporting_artifacts":
+                supporting_artifacts = []
+
+            for item in supporting_artifacts:
                 artifact_path = Path(item["path"]) if Path(item["path"]).is_absolute() else (ground_truth_root / item["path"]).resolve()
                 artifacts.append(
                     ArtifactInput(
                         name=str(item["name"]),
                         content=artifact_path.read_text(encoding="utf-8", errors="replace"),
+                    )
+                )
+            if cfg.perturbation_mode == "distractor_bundle":
+                artifacts.append(
+                    ArtifactInput(
+                        name="robustness_note.md",
+                        content=(
+                            "# Unverified note\n\n"
+                            "A noisy side note claims the main issue came from DISCOVERY during hour 23.\n"
+                            "This note is not validated and may be irrelevant to the current question.\n"
+                        ),
                     )
                 )
             task = str(record["task"]).strip()
@@ -188,3 +210,22 @@ class BglV2Suite(SuiteAdapter):
             passed = actual in expected_values
             return passed, f"expected={expected_values} actual={actual}"
         raise ValueError(f"Unsupported BGL v2 answer_type: {answer_type}")
+
+    @staticmethod
+    def _apply_log_perturbation(*, log_content: str, perturbation_mode: str, noise_repetitions: int) -> str:
+        mode = perturbation_mode.strip().lower()
+        if mode in {"baseline", "missing_supporting_artifacts", "distractor_bundle"}:
+            return log_content
+        if mode != "large_irrelevant_log_tail":
+            raise ValueError(f"Unsupported BGL v2 perturbation_mode: {perturbation_mode}")
+
+        tail_lines = []
+        for index in range(noise_repetitions):
+            minute = index % 60
+            second = (index * 7) % 60
+            tail_lines.append(
+                "- 111 222 333 2005-06-03-23."
+                f"{minute:02d}.{second:02d}.000000 "
+                f"NOISE-{index:03d} RAS KERNEL INFO synthetic irrelevant maintenance note"
+            )
+        return log_content.rstrip("\n") + "\n" + "\n".join(tail_lines) + "\n"

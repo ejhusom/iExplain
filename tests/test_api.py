@@ -148,7 +148,33 @@ def test_inspector_routes(tmp_path):
         encoding="utf-8",
     )
     (run_dir / "results.jsonl").write_text(
-        json.dumps({"case_id": "q1", "score": {"passed": True}}) + "\n",
+        json.dumps(
+            {
+                "case_id": "q1",
+                "metadata": {"task_index": "task_1", "difficulty": "easy"},
+                "task": "Explain q1",
+                "score": {"passed": True, "score": 1.0},
+                "case_metrics": {"assistant_turns": 2, "tool_calls": 1, "total_tokens": 33},
+                "result": {
+                    "content": "{\"answer\": 1}",
+                    "tool_calls": [],
+                    "events": [],
+                    "metadata": {
+                        "trace": {
+                            "resolved_runtime": {
+                                "profile": "bgl_v2_eval",
+                                "mode": "pipeline",
+                                "model": {"model": "gpt-4o-mini"},
+                            },
+                            "usage": {"assistant_turns": 2, "tool_calls": 1, "total_tokens": 33},
+                            "stages": [],
+                            "tool_sequence": [],
+                        }
+                    },
+                },
+            }
+        )
+        + "\n",
         encoding="utf-8",
     )
 
@@ -169,6 +195,11 @@ def test_inspector_routes(tmp_path):
         run_detail = client.get("/api/v1/inspector/runs/20260317-demo-run")
         assert run_detail.status_code == 200
         assert run_detail.json()["summary"]["name"] == "demo-run"
+        assert run_detail.json()["case_summaries"][0]["case_id"] == "q1"
+
+        case_detail = client.get("/api/v1/inspector/runs/20260317-demo-run/cases/q1")
+        assert case_detail.status_code == 200
+        assert case_detail.json()["case"]["case_id"] == "q1"
 
         response = client.post("/api/v1/jobs", json={"run": {"task": "inspect me", "profile": "intent_demo"}})
         assert response.status_code == 202

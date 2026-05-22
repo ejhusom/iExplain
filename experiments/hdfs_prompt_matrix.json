@@ -1,0 +1,109 @@
+{
+  "name": "hdfs-prompt-matrix",
+  "base_experiment": {
+    "name": "hdfs-smoke-prompt-study",
+    "suite": {
+      "type": "hdfs",
+      "settings": {
+        "labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv",
+        "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions",
+        "sample_limit": 40,
+        "seed": 42
+      }
+    },
+    "runtime": {
+      "profile": "hdfs_eval",
+      "overrides": {}
+    },
+    "output_dir": "runs",
+    "tags": {
+      "suite": "hdfs",
+      "study": "prompting"
+    }
+  },
+  "axes": [
+    {
+      "name": "prompt_setup",
+      "values": [
+        {
+          "label": "compact",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "prompt_overrides": {
+                  "log_preprocessor": "hdfs_compact_few_shot",
+                  "log_anomaly_detector": "hdfs_compact_few_shot",
+                  "log_explainer": "default"
+                }
+              }
+            },
+            "tags": {
+              "prompt_setup": "compact"
+            }
+          }
+        },
+        {
+          "label": "zero_shot",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "prompt_overrides": {
+                  "log_preprocessor": "hdfs_zero_shot",
+                  "log_anomaly_detector": "hdfs_zero_shot",
+                  "log_explainer": "hdfs_zero_shot"
+                }
+              }
+            },
+            "tags": {
+              "prompt_setup": "zero_shot"
+            }
+          }
+        },
+        {
+          "label": "few_shot",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "prompt_overrides": {
+                  "log_preprocessor": "hdfs_few_shot",
+                  "log_anomaly_detector": "hdfs_few_shot",
+                  "log_explainer": "hdfs_few_shot"
+                }
+              }
+            },
+            "tags": {
+              "prompt_setup": "few_shot"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "model",
+      "values": [
+        {
+          "label": "qwen3-4b",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "ollama",
+                "model": "qwen3:4b-instruct"
+              }
+            }
+          }
+        },
+        {
+          "label": "gpt-4o-mini",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "openai",
+                "model": "gpt-4o-mini"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

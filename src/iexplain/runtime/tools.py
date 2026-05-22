@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 import requests
 
+from iexplain.ingraph_fill import InGraphFillClient
 from iexplain.intent_graphdb import GraphDBIntentClient
 
 
@@ -83,7 +84,7 @@ def _list_files_tool(context: ToolContext) -> ToolSpec:
 
 
 def _read_file_tool(context: ToolContext) -> ToolSpec:
-    def handler(path: str, start_line: int = 1, max_lines: int = 200) -> dict[str, Any]:
+    def handler(path: str, start_line: int = 1, max_lines: int = 50) -> dict[str, Any]:
         target = _safe_path(context.workspace, path)
         if not target.exists():
             return {"error": f"File not found: {path}"}
@@ -91,7 +92,7 @@ def _read_file_tool(context: ToolContext) -> ToolSpec:
             return {"error": "start_line must be >= 1"}
         if max_lines < 1:
             return {"error": "max_lines must be >= 1"}
-        max_lines = min(max_lines, 200)
+        max_lines = min(max_lines, 100)
         lines = target.read_text(encoding="utf-8", errors="replace").splitlines()
         subset = lines[start_line - 1 : start_line - 1 + max_lines]
         return {
@@ -104,13 +105,13 @@ def _read_file_tool(context: ToolContext) -> ToolSpec:
 
     return ToolSpec(
         name="read_file",
-        description="Read a bounded slice of a text file from the workspace.",
+        description="Read a bounded slice of a text file from the workspace. Prefer small targeted windows over large reads.",
         parameters={
             "type": "object",
             "properties": {
                 "path": {"type": "string"},
                 "start_line": {"type": "integer", "default": 1},
-                "max_lines": {"type": "integer", "default": 200},
+                "max_lines": {"type": "integer", "default": 50},
             },
             "required": ["path"],
         },
@@ -712,10 +713,72 @@ def _fetch_intent_bundle_tool(_: ToolContext) -> ToolSpec:
     )
 
 
+def _fetch_fill_entity_bundle_tool(_: ToolContext) -> ToolSpec:
+    cache: dict[tuple[str, str, str], InGraphFillClient] = {}
+
+    def handler(entity_id: str) -> dict[str, Any]:
+        base_url = os.getenv("IEXPLAIN_INGRAPH_URL", "http://localhost:5000")
+        repository_id = os.getenv("IEXPLAIN_INGRAPH_FILL_REPOSITORY", "FILL")
+        resource_prefix = os.getenv("IEXPLAIN_INGRAPH_FILL_RESOURCE_PREFIX", "https://intendproject.eu/fill/")
+        cache_key = (base_url, repository_id, resource_prefix)
+
+        if cache_key not in cache:
+            cache[cache_key] = InGraphFillClient(
+                base_url,
+                repository_id,
+                resource_prefix=resource_prefix,
+            )
+
+        try:
+            bundle = cache[cache_key].fetch_entity_bundle(entity_id)
+        except requests.RequestException as exc:
+            return {"error": f"inGraph request failed: {exc}"}
+        except ValueError as exc:
+            return {"error": str(exc)}
+
+        bundle_data = asdict(bundle)
+        return {
+            "entity_id": entity_id,
+            "entity_iri": bundle.entity_iri,
+            "entity_name": bundle.entity_name,
+            "entity_type": bundle.entity_type,
+            "external_id": bundle.external_id,
+            "description": bundle.description,
+            "counts": {
+                "outgoing_relations": len(bundle.outgoing),
+                "outgoing_entities": sum(len(group.entities) for group in bundle.outgoing),
+                "incoming_relations": len(bundle.incoming),
+                "incoming_entities": sum(len(group.entities) for group in bundle.incoming),
+            },
+            "outgoing": bundle_data["outgoing"],
+            "incoming": bundle_data["incoming"],
+        }
+
+    return ToolSpec(
+        name="fetch_fill_entity_bundle",
+        description=(
+            "Fetch one FILL entity from inGraph and summarize its direct outgoing and incoming graph relations. "
+            "Use this when the task asks what a FILL machine, service, component, or container is connected to."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "entity_id": {
+                    "type": "string",
+                    "description": "The target FILL entity identifier, for example `Machine5`, `Service3`, or a full IRI.",
+                }
+            },
+            "required": ["entity_id"],
+        },
+        handler=handler,
+    )
+
+
 STANDARD_TOOL_BUILDERS: dict[str, Callable[[ToolContext], ToolSpec]] = {
     "bgl_answer_question": _bgl_answer_question_tool,
     "bgl_file_stats": _bgl_file_stats_tool,
     "bgl_query": _bgl_query_tool,
+    "fetch_fill_entity_bundle": _fetch_fill_entity_bundle_tool,
     "fetch_intent_bundle": _fetch_intent_bundle_tool,
     "list_files": _list_files_tool,
     "read_file": _read_file_tool,

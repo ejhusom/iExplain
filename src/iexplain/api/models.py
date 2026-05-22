@@ -371,7 +371,16 @@ class InspectorRunSummaryResponse(BaseModel):
 class InspectorRunDetailResponse(BaseModel):
     summary: dict[str, Any] = Field(description="Raw summary.json payload for the run.")
     experiment: dict[str, Any] = Field(description="Raw experiment.json payload for the run when present.")
+    case_summaries: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Compact summaries for each archived case result in the run.",
+    )
     results_preview: list[dict[str, Any]] = Field(
         default_factory=list,
         description="Preview of up to the first 10 lines from results.jsonl.",
     )
+
+
+class InspectorRunCaseDetailResponse(BaseModel):
+    run_id: str = Field(description="Run identifier.")
+    case: dict[str, Any] = Field(description="Full archived case row loaded from results.jsonl.")

@@ -1,0 +1,22 @@
+{
+  "name": "openrca-bank-smoke",
+  "suite": {
+    "type": "openrca",
+    "settings": {
+      "openrca_root": "../OpenRCA",
+      "dataset": "Bank",
+      "start_idx": 0,
+      "sample_limit": 3
+    }
+  },
+  "runtime": {
+    "profile": "openrca_eval",
+    "overrides": {}
+  },
+  "output_dir": "runs",
+  "tags": {
+    "suite": "openrca",
+    "dataset": "Bank",
+    "tier": "smoke"
+  }
+}

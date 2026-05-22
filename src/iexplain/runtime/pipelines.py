@@ -67,8 +67,24 @@ PIPELINES: dict[str, list[PipelineStage]] = {
                 "Original task:\n{task}\n\n"
                 "Prior stage outputs:\n{history}\n\n"
                 "Keep the detector label unchanged.\n"
-                "If the original task requests a specific output schema, follow it exactly.\n"
-                "Otherwise return a concise grounded explanation."
+                "Use the detector signals as the basis for the final answer.\n"
+                "Return only JSON with keys `label`, `summary`, and `signals`.\n"
+                "The `label` must exactly match the detector label.\n"
+                "The `summary` must be 1-2 grounded sentences.\n"
+                "The `signals` list must contain concise grounded evidence phrases only.\n"
+                "Do not return markdown headings, prose sections, or code fences."
+            ),
+        ),
+    ],
+    "hdfs_single_pass": [
+        PipelineStage(
+            name="classify",
+            role="log_anomaly_detector",
+            tools=["read_file"],
+            task_template=(
+                "Read the HDFS session from `session.log` and classify it directly.\n"
+                "Original task:\n{task}\n\n"
+                "Return JSON with keys `label` and `signals`."
             ),
         ),
     ],
@@ -98,6 +114,36 @@ PIPELINES: dict[str, list[PipelineStage]] = {
             ),
         ),
     ],
+    "bgl_v2_raw_text_question_answering": [
+        PipelineStage(
+            name="answer",
+            role="bgl_qa",
+            tools=["read_file", "search_text"],
+            task_template=(
+                "Use the workspace artifacts to answer the question below.\n"
+                "Available artifacts:\n{artifacts}\n\n"
+                "Question:\n{task}\n\n"
+                "You do not have access to structured BGL tools in this configuration.\n"
+                "Use `search_text` to locate candidate evidence in `bgl.log` and `read_file` for bounded inspection.\n"
+                "Keep tool use disciplined and avoid reading large raw chunks unnecessarily."
+            ),
+        ),
+    ],
+    "bgl_v2_summary_question_answering": [
+        PipelineStage(
+            name="answer",
+            role="bgl_qa",
+            tools=["bgl_file_stats", "bgl_query", "read_file"],
+            task_template=(
+                "Use the workspace artifacts to answer the question below.\n"
+                "Available artifacts:\n{artifacts}\n\n"
+                "Question:\n{task}\n\n"
+                "Use `bgl_file_stats` first for broad whole-file aggregates when relevant.\n"
+                "Use `bgl_query` for filtered measurements and subset comparisons over `bgl.log`.\n"
+                "Use `read_file` only for small supporting artifacts such as `.json`, `.md`, or `.txt`."
+            ),
+        ),
+    ],
     "intent_summary": [
         PipelineStage(
             name="summarize",
@@ -109,6 +155,21 @@ PIPELINES: dict[str, list[PipelineStage]] = {
                 "Then return markdown with these headings:\n"
                 "- Intent\n- Current Status\n- Timeline\n- Evidence\n- Open Questions\n\n"
                 "Stay grounded in the fetched bundle. If the data is incomplete, say so explicitly."
+            ),
+        ),
+    ],
+    "ingraph_fill_summary": [
+        PipelineStage(
+            name="summarize",
+            role="log_explainer",
+            tools=["fetch_fill_entity_bundle"],
+            task_template=(
+                "Target task:\n{task}\n\n"
+                "Use `fetch_fill_entity_bundle` exactly once with the target FILL entity identifier from the task.\n"
+                "Then return markdown with these headings:\n"
+                "- Entity\n- Direct Relationships\n- Interpretation\n- Open Questions\n\n"
+                "Explain what the entity is, what it is directly connected to, and any limitations in the visible neighborhood.\n"
+                "Stay grounded in the fetched bundle."
             ),
         ),
     ],

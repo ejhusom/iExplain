@@ -15,6 +15,7 @@ from iexplain.api.models import (
     HealthResponse,
     JobAcceptedResponse,
     JobStateResponse,
+    InspectorRunCaseDetailResponse,
     JobSummaryResponse,
     InspectorContextResponse,
     InspectorRunDetailResponse,
@@ -281,6 +282,23 @@ def create_app(
             raise HTTPException(status_code=404, detail="Run not found")
         return _load_run_detail(run_dir)
 
+    @app.get(
+        "/api/v1/inspector/runs/{run_id}/cases/{case_id}",
+        response_model=InspectorRunCaseDetailResponse,
+        tags=["inspector"],
+        summary="Get run case",
+        description="Return one archived case row from results.jsonl, including the full runtime trace when present.",
+        operation_id="getInspectorRunCase",
+    )
+    async def get_run_case(run_id: str, case_id: str) -> InspectorRunCaseDetailResponse:
+        run_dir = _resolve_run_dir(Path(app_service.config.paths.runs_dir), run_id)
+        if not run_dir.exists():
+            raise HTTPException(status_code=404, detail="Run not found")
+        return {
+            "run_id": run_id,
+            "case": _load_run_case_detail(run_dir, case_id),
+        }
+
     return app
 
 
@@ -340,20 +358,71 @@ def _load_run_detail(run_dir: Path) -> dict[str, Any]:
     experiment_path = run_dir / "experiment.json"
     experiment = json.loads(experiment_path.read_text(encoding="utf-8")) if experiment_path.exists() else {}
 
+    case_summaries: list[dict[str, Any]] = []
     results_preview: list[dict[str, Any]] = []
     results_path = run_dir / "results.jsonl"
     if results_path.exists():
         with results_path.open("r", encoding="utf-8") as handle:
             for index, line in enumerate(handle):
-                if index >= 10:
-                    break
                 line = line.strip()
                 if not line:
                     continue
-                results_preview.append(json.loads(line))
+                row = json.loads(line)
+                case_summaries.append(_summarize_run_case(row, index + 1))
+                if index < 10:
+                    results_preview.append(row)
 
     return {
         "summary": summary,
         "experiment": experiment,
+        "case_summaries": case_summaries,
         "results_preview": results_preview,
     }
+
+
+def _load_run_case_detail(run_dir: Path, case_id: str) -> dict[str, Any]:
+    results_path = run_dir / "results.jsonl"
+    if not results_path.exists():
+        raise HTTPException(status_code=404, detail="Run has no results file")
+
+    with results_path.open("r", encoding="utf-8") as handle:
+        for index, line in enumerate(handle, start=1):
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if str(row.get("case_id")) == case_id:
+                row.setdefault("inspector", {})
+                row["inspector"]["row_number"] = index
+                return row
+    raise HTTPException(status_code=404, detail="Case not found")
+
+
+def _summarize_run_case(row: dict[str, Any], row_number: int) -> dict[str, Any]:
+    metadata = row.get("metadata") or {}
+    case_metrics = row.get("case_metrics") or {}
+    score = row.get("score") or {}
+    return {
+        "case_id": row.get("case_id"),
+        "row_number": row_number,
+        "task_index": metadata.get("task_index"),
+        "difficulty": metadata.get("difficulty"),
+        "passed": score.get("passed"),
+        "score": _primary_case_score(score),
+        "assistant_turns": case_metrics.get("assistant_turns"),
+        "tool_calls": case_metrics.get("tool_calls"),
+        "total_tokens": case_metrics.get("total_tokens"),
+        "latency_ms": case_metrics.get("latency_ms"),
+        "error": (row.get("result") or {}).get("error"),
+    }
+
+
+def _primary_case_score(score: dict[str, Any]) -> float | int | None:
+    for key in ("score", "accuracy", "pass_rate", "cases_passed"):
+        value = score.get(key)
+        if isinstance(value, (int, float)):
+            return value
+    passed = score.get("passed")
+    if isinstance(passed, bool):
+        return 1.0 if passed else 0.0
+    return None

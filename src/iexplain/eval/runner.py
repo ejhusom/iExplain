@@ -18,6 +18,7 @@ from iexplain.eval.base import SuiteAdapter
 from iexplain.eval.suites.bgl import BglSuite
 from iexplain.eval.suites.bgl_v2 import BglV2Suite
 from iexplain.eval.suites.hdfs import HdfsSuite
+from iexplain.eval.suites.openrca import OpenRcaSuite
 from iexplain.runtime.models import RunOverrides, RunRequest
 from iexplain.runtime.service import IExplainService
 
@@ -26,6 +27,7 @@ SUITES: dict[str, SuiteAdapter] = {
     "hdfs": HdfsSuite(),
     "bgl": BglSuite(),
     "bgl_v2": BglV2Suite(),
+    "openrca": OpenRcaSuite(),
 }
 
 

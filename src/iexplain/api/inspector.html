@@ -851,6 +851,9 @@
       const state = {
         selectedType: null,
         selectedId: null,
+        selectedRunPayload: null,
+        selectedRunCaseId: null,
+        selectedRunCase: null,
         jobs: [],
         runs: [],
         profiles: [],
@@ -1141,7 +1144,126 @@
         });
       }
 
+      function renderRunCaseList(runId, cases = []) {
+        if (!cases.length) {
+          return `<div class="empty"><strong>No archived case rows found.</strong>This run does not have case-level results yet.</div>`;
+        }
+        return `
+          <div class="stage-list">
+            ${cases.map((item) => `
+              <div
+                class="item ${state.selectedRunCaseId === item.case_id ? "active" : ""}"
+                data-type="run-case"
+                data-run-id="${escapeHtml(runId)}"
+                data-id="${escapeHtml(item.case_id)}"
+                role="button"
+                tabindex="0"
+              >
+                <div class="item-topline">
+                  <div class="item-title">${escapeHtml(item.case_id || `case-${item.row_number}`)}</div>
+                  <span class="chip">${item.passed === true ? "passed" : item.passed === false ? "failed" : "unknown"}</span>
+                </div>
+                <div class="item-body">
+                  ${escapeHtml(item.task_index || "task")} · ${escapeHtml(item.difficulty || "difficulty unknown")}
+                </div>
+                <div class="chip-row">
+                  <span class="chip">score ${fmtNumber(item.score)}</span>
+                  <span class="chip">turns ${fmtNumber(item.assistant_turns)}</span>
+                  <span class="chip">tools ${fmtNumber(item.tool_calls)}</span>
+                  <span class="chip">tokens ${fmtNumber(item.total_tokens)}</span>
+                </div>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+
+      function renderArchivedCaseDetail(casePayload) {
+        if (!casePayload) {
+          return `<div class="empty"><strong>Select a case to inspect.</strong>Use the case list above to open the full trace for one archived evaluation case.</div>`;
+        }
+
+        const row = casePayload.case || {};
+        const result = row.result || {};
+        const trace = result.metadata?.trace || {};
+        const runtime = trace.resolved_runtime || {};
+        const metadata = row.metadata || {};
+        const score = row.score || {};
+        const diagnostics = `
+          <section class="subpanel">
+            <h3>Compact conversation</h3>
+            ${renderJson(trace.conversation || [])}
+          </section>
+          <section class="subpanel">
+            <h3>Tool calls</h3>
+            ${renderJson(result.tool_calls || [])}
+          </section>
+          <section class="subpanel">
+            <h3>Events</h3>
+            ${renderJson(result.events || [])}
+          </section>
+          <section class="subpanel">
+            <h3>Metadata</h3>
+            ${renderJson(result.metadata || {})}
+          </section>
+        `;
+
+        return `
+          <section class="card hero-card">
+            <div class="card-inner">
+              <div class="hero-header">
+                <div class="hero-title">
+                  <h2>${escapeHtml(row.case_id || "case")}</h2>
+                  <div class="hero-subtitle">archived case trace · row ${fmtNumber(row.inspector?.row_number)}</div>
+                </div>
+                <div class="chip">${score.passed === true ? "passed" : score.passed === false ? "failed" : "unknown"}</div>
+              </div>
+
+              <div class="stat-grid">
+                <div class="stat"><div class="label">Task</div><div class="value">${escapeHtml(metadata.task_index || "–")}</div></div>
+                <div class="stat"><div class="label">Difficulty</div><div class="value">${escapeHtml(metadata.difficulty || "–")}</div></div>
+                <div class="stat"><div class="label">Profile</div><div class="value">${escapeHtml(runtime.profile || result.profile || "–")}</div></div>
+                <div class="stat"><div class="label">Mode</div><div class="value">${escapeHtml(runtime.mode || result.mode || "–")}</div></div>
+                <div class="stat"><div class="label">Assistant Turns</div><div class="value">${fmtNumber(trace.usage?.assistant_turns)}</div></div>
+                <div class="stat"><div class="label">Total Tokens</div><div class="value">${fmtNumber(trace.usage?.total_tokens)}</div></div>
+                <div class="stat"><div class="label">Tool Calls</div><div class="value">${fmtNumber(trace.usage?.tool_calls)}</div></div>
+                <div class="stat"><div class="label">Score</div><div class="value">${fmtNumber(score.score ?? (score.passed === true ? 1 : score.passed === false ? 0 : null))}</div></div>
+              </div>
+
+              <div class="chip-row">
+                ${(trace.tool_sequence || []).map((name) => `<span class="chip">${escapeHtml(name)}</span>`).join("")}
+              </div>
+            </div>
+          </section>
+
+          ${renderDisclosure("Case task", `<pre>${escapeHtml(row.task || trace.request?.task || "No task stored.")}</pre>`, {
+            open: true,
+            caption: "Exact archived task text for this case",
+          })}
+
+          ${renderDisclosure("Final answer", `<pre>${escapeHtml(result.content || result.error || "No result content stored.")}</pre>`, {
+            open: true,
+            caption: "Primary response returned by the runtime",
+          })}
+
+          ${renderDisclosure("Score", renderJson(score), {
+            caption: "Per-case evaluation output",
+          })}
+
+          ${renderDisclosure("Stage trace", renderStageCards(trace.stages || []), {
+            caption: "High-level stage flow and turn previews",
+          })}
+
+          ${renderDisclosure("Diagnostics", `<div class="two-col">${diagnostics}</div>`, {
+            caption: "Raw trace data and lower-level payloads",
+          })}
+        `;
+      }
+
       function renderJobDetail(job) {
+        state.selectedRunPayload = null;
+        state.selectedRunCaseId = null;
+        state.selectedRunCase = null;
         const summary = state.jobs.find((item) => item.job_id === job.job_id) || {};
         const result = job.result || {};
         const trace = result.metadata?.trace || {};
@@ -1219,6 +1341,7 @@
       }
 
       function renderRunDetail(payload) {
+        state.selectedRunPayload = payload;
         const summary = payload.summary || {};
         const runtime = summary.resolved_runtime || {};
         const performance = summary.performance || {};
@@ -1257,6 +1380,13 @@
             caption: "Experiment definition loaded for this archived run",
           })}
 
+          ${renderDisclosure("Cases", renderRunCaseList(summary.run_id || summary.directory || "", payload.case_summaries || []), {
+            open: true,
+            caption: "Select one archived case to inspect its full runtime trace",
+          })}
+
+          ${renderArchivedCaseDetail(state.selectedRunCase)}
+
           ${renderDisclosure("Results preview", renderJson(payload.results_preview || []), {
             caption: "First few rows from the archived results file",
           })}
@@ -1277,6 +1407,23 @@
         const payload = await fetchJson(`/api/v1/inspector/runs/${runId}`);
         state.selectedType = "run";
         state.selectedId = runId;
+        state.selectedRunPayload = payload;
+        state.selectedRunCaseId = null;
+        state.selectedRunCase = null;
+        setBrowseView("runs");
+        renderJobs();
+        renderRuns();
+        renderRunDetail(payload);
+      }
+
+      async function loadRunCaseDetail(runId, caseId) {
+        const payload = state.selectedRunPayload || await fetchJson(`/api/v1/inspector/runs/${runId}`);
+        const casePayload = await fetchJson(`/api/v1/inspector/runs/${runId}/cases/${encodeURIComponent(caseId)}`);
+        state.selectedType = "run";
+        state.selectedId = runId;
+        state.selectedRunPayload = payload;
+        state.selectedRunCaseId = caseId;
+        state.selectedRunCase = casePayload;
         setBrowseView("runs");
         renderJobs();
         renderRuns();
@@ -1364,6 +1511,8 @@
           await loadJobDetail(id);
         } else if (type === "run") {
           await loadRunDetail(id);
+        } else if (type === "run-case") {
+          await loadRunCaseDetail(target.dataset.runId, id);
         }
       });
 
@@ -1378,6 +1527,8 @@
           await loadJobDetail(id);
         } else if (type === "run") {
           await loadRunDetail(id);
+        } else if (type === "run-case") {
+          await loadRunCaseDetail(target.dataset.runId, id);
         }
       });
 

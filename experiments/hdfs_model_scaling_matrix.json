@@ -1,0 +1,75 @@
+{
+  "name": "hdfs-model-scaling-matrix",
+  "base_experiment": {
+    "name": "hdfs-full-model-scaling-study",
+    "suite": {
+      "type": "hdfs",
+      "settings": {
+        "labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv",
+        "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions",
+        "sample_limit": 0,
+        "seed": 42
+      }
+    },
+    "runtime": {
+      "profile": "hdfs_eval",
+      "overrides": {}
+    },
+    "output_dir": "runs",
+    "tags": {
+      "suite": "hdfs",
+      "study": "model_scaling",
+      "mode": "pipeline",
+      "prompt_setup": "few_shot"
+    }
+  },
+  "axes": [
+    {
+      "name": "model",
+      "values": [
+        {
+          "label": "qwen3-4b",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "ollama",
+                "model": "qwen3:4b-instruct"
+              }
+            },
+            "tags": {
+              "model_family": "local_small"
+            }
+          }
+        },
+        {
+          "label": "qwen3-8b",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "ollama",
+                "model": "qwen3:8b-instruct"
+              }
+            },
+            "tags": {
+              "model_family": "local_medium"
+            }
+          }
+        },
+        {
+          "label": "gpt-4o",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "openai",
+                "model": "gpt-4o"
+              }
+            },
+            "tags": {
+              "model_family": "remote_strong"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

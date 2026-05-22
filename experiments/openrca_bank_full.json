@@ -1,0 +1,21 @@
+{
+  "name": "openrca-bank-full",
+  "suite": {
+    "type": "openrca",
+    "settings": {
+      "openrca_root": "../OpenRCA",
+      "dataset": "Bank",
+      "start_idx": 0
+    }
+  },
+  "runtime": {
+    "profile": "openrca_eval",
+    "overrides": {}
+  },
+  "output_dir": "runs",
+  "tags": {
+    "suite": "openrca",
+    "dataset": "Bank",
+    "tier": "full"
+  }
+}

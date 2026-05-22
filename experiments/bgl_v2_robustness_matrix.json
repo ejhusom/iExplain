@@ -1,0 +1,103 @@
+{
+  "name": "bgl-v2-robustness-matrix",
+  "base_experiment": {
+    "name": "bgl-v2-challenge-robustness-study",
+    "suite": {
+      "type": "bgl_v2",
+      "settings": {
+        "log_file": "data/bgl/bgl_2k.log",
+        "ground_truth_file": "data/bgl/ground_truth_v2.json",
+        "tier": "challenge",
+        "selected_ids": [
+          "bglv2_q13_grounded_component_most_errors_window",
+          "bglv2_q14_network_failure_insufficient_evidence",
+          "bglv2_q15_ignore_noise_report",
+          "bglv2_q17_illegal_instruction_percentage_hour10",
+          "bglv2_q18_window_discovery_vpd_checks",
+          "bglv2_q19_grounded_hour12_pgood_node",
+          "bglv2_q20_ignore_noise_compare_error_phrases"
+        ]
+      }
+    },
+    "runtime": {
+      "profile": "bgl_v2_eval",
+      "overrides": {}
+    },
+    "output_dir": "runs",
+    "tags": {
+      "suite": "bgl_v2",
+      "study": "robustness",
+      "mode": "pipeline",
+      "tool_setup": "structured"
+    }
+  },
+  "axes": [
+    {
+      "name": "robustness_mode",
+      "values": [
+        {
+          "label": "baseline",
+          "patch": {
+            "tags": {
+              "robustness_mode": "baseline"
+            }
+          }
+        },
+        {
+          "label": "missing_supporting_artifacts",
+          "patch": {
+            "suite": {
+              "settings": {
+                "perturbation_mode": "missing_supporting_artifacts"
+              }
+            },
+            "tags": {
+              "robustness_mode": "missing_supporting_artifacts"
+            }
+          }
+        },
+        {
+          "label": "large_irrelevant_log_tail",
+          "patch": {
+            "suite": {
+              "settings": {
+                "perturbation_mode": "large_irrelevant_log_tail",
+                "noise_repetitions": 400
+              }
+            },
+            "tags": {
+              "robustness_mode": "large_irrelevant_log_tail"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "model",
+      "values": [
+        {
+          "label": "qwen3-4b",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "ollama",
+                "model": "qwen3:4b-instruct"
+              }
+            }
+          }
+        },
+        {
+          "label": "gpt-4o-mini",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "openai",
+                "model": "gpt-4o-mini"
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

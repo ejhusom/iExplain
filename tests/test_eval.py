@@ -6,6 +6,7 @@ from pathlib import Path
 
 from iexplain.eval.analyze import write_report
 from iexplain.eval.runner import run_experiment, run_matrix_experiment
+from iexplain.eval.suites.hdfs import _normalize_label
 from iexplain.runtime.models import RunRequest, RunResult, ToolCallRecord
 from iexplain.runtime.service import IExplainService
 
@@ -54,6 +55,17 @@ class StubEvalService(IExplainService):
                 },
             ],
         )
+
+
+def test_hdfs_label_normalization_prefers_explicit_anomalous_classification():
+    explanation = (
+        "Classification:\n"
+        "    ANOMALOUS\n\n"
+        "Reasoning:\n"
+        "    This deviates from the normal HDFS behavior of successful block reception and storage."
+    )
+    assert _normalize_label(explanation) == 1
+    assert _normalize_label("Classification:\n    NORMAL\n") == 0
 
 
 def test_hdfs_experiment_runner(tmp_path: Path):
@@ -186,6 +198,120 @@ def test_bgl_experiment_runner(tmp_path: Path):
     bgl_rows = [row for row in report["comparison_rows"] if row["name"] == "test-bgl"]
     assert bgl_rows[0]["pipeline"] == "bgl_question_answering"
     assert bgl_rows[0]["prompt_variants"] == "bgl_qa=default"
+
+
+def test_openrca_experiment_runner_supports_reduced_sample_selection(tmp_path: Path):
+    openrca_root = tmp_path / "OpenRCA"
+    dataset_root = openrca_root / "dataset" / "data" / "Bank"
+    telemetry_day = dataset_root / "telemetry" / "2021_03_04"
+    telemetry_day.mkdir(parents=True)
+    (telemetry_day / "metrics.csv").write_text(
+        "timestamp,component,value\n2021-03-04 09:02:00,Redis02,98\n",
+        encoding="utf-8",
+    )
+    (dataset_root / "query.csv").write_text(
+        "\n".join(
+            [
+                "task_index,instruction,scoring_points",
+                'task_1,"Case 1","The only predicted root cause component is Redis01"',
+                'task_2,"Case 2","The only predicted root cause component is Redis02"',
+                'task_3,"Case 3","The only predicted root cause component is Redis03"',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (dataset_root / "record.csv").write_text(
+        "\n".join(
+            [
+                "component,datetime,reason,level,timestamp",
+                "Redis01,2021-03-04 09:01:00,high memory usage,service,1614848460",
+                "Redis02,2021-03-04 09:02:00,high memory usage,service,1614848520",
+                "Redis03,2021-03-04 09:03:00,high memory usage,service,1614848580",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    prompt_dir = openrca_root / "rca" / "baseline" / "rca_agent" / "prompt"
+    prompt_dir.mkdir(parents=True)
+    (prompt_dir / "basic_prompt_Bank.py").write_text(
+        'schema = "Bank telemetry schema overview."\n',
+        encoding="utf-8",
+    )
+    experiment_path = tmp_path / "openrca_experiment.json"
+    experiment_path.write_text(
+        json.dumps(
+            {
+                "name": "test-openrca",
+                "suite": {
+                    "type": "openrca",
+                    "settings": {
+                        "openrca_root": str(openrca_root),
+                        "dataset": "Bank",
+                        "start_idx": 1,
+                        "sample_limit": 1,
+                    },
+                },
+                "runtime": {"profile": "openrca_eval", "overrides": {}},
+                "output_dir": "runs",
+                "tags": {"suite": "openrca"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    class StubOpenRcaService(StubEvalService):
+        def run(self, request: RunRequest) -> RunResult:
+            return RunResult(
+                content='{"1": {"root cause component": "Redis02"}}',
+                mode="agent",
+                profile=request.profile,
+                prompt_variants={"general_analyst": "openrca"},
+                tool_calls=[ToolCallRecord(name="list_files"), ToolCallRecord(name="read_file")],
+                events=[
+                    {
+                        "type": "assistant",
+                        "turn": 1,
+                        "usage": {
+                            "input_tokens": 15,
+                            "output_tokens": 4,
+                            "total_tokens": 19,
+                        },
+                    },
+                    {
+                        "type": "tool_call",
+                        "turn": 1,
+                        "name": "list_files",
+                    },
+                    {
+                        "type": "tool_call",
+                        "turn": 2,
+                        "name": "read_file",
+                    },
+                    {
+                        "type": "assistant",
+                        "turn": 2,
+                        "usage": {
+                            "input_tokens": 11,
+                            "output_tokens": 5,
+                            "total_tokens": 16,
+                        },
+                    },
+                ],
+            )
+
+    run_dir = run_experiment(experiment_path, service=StubOpenRcaService())
+    summary = json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
+    row = json.loads((run_dir / "results.jsonl").read_text(encoding="utf-8").splitlines()[0])
+
+    assert summary["metrics"]["suite"] == "openrca"
+    assert summary["cases_total"] == 1
+    assert summary["metrics"]["pass_rate"] == 1.0
+    assert summary["resolved_runtime"]["mode"] == "agent"
+    assert summary["prompt_variants_seen"]["general_analyst"] == ["openrca"]
+    assert row["metadata"]["task_index"] == "task_2"
+    assert row["metadata"]["row_index"] == 1
 
 
 def test_matrix_runner_and_analysis_outputs(tmp_path: Path):

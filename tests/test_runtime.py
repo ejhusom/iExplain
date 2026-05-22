@@ -43,6 +43,13 @@ def test_pipeline_mode_hdfs_profile_runs():
     assert trace["conversation"][0]["type"] == "assistant"
 
 
+def test_hdfs_explain_stage_requires_strict_json_output():
+    explain_stage = get_pipeline("hdfs_anomaly")[2]
+    assert explain_stage.name == "explain"
+    assert "Return only JSON with keys `label`, `summary`, and `signals`." in explain_stage.task_template
+    assert "Do not return markdown headings, prose sections, or code fences." in explain_stage.task_template
+
+
 def test_planner_mode_can_delegate():
     config = AppConfig.from_file("config/app.toml")
     backend = SequenceBackend(

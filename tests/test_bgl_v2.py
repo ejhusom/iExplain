@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from iexplain.eval.runner import run_experiment
+from iexplain.eval.suites.bgl_v2 import BglV2Suite
 from iexplain.runtime.models import RunRequest, RunResult, ToolCallRecord
 from iexplain.runtime.pipelines import get_pipeline
 from iexplain.runtime.service import IExplainService
@@ -114,3 +115,57 @@ def test_bgl_v2_experiment_runner(tmp_path: Path):
     assert summary["metrics"]["by_category"]["multi_artifact"]["cases_passed"] == 1
     assert summary["resolved_runtime"]["pipeline"] == "bgl_v2_question_answering"
     assert summary["prompt_variants_seen"]["bgl_qa"] == ["v2"]
+
+
+def test_bgl_v2_suite_missing_supporting_artifacts_and_log_tail(tmp_path: Path):
+    log_file = tmp_path / "bgl.log"
+    log_file.write_text(
+        "- 111 222 333 2005-06-03-12.00.00.000000 NODE1 RAS MMCS ERROR first\n",
+        encoding="utf-8",
+    )
+    support_file = tmp_path / "maintenance_window.json"
+    support_file.write_text('{"start_hour": "12", "end_hour": "16"}\n', encoding="utf-8")
+    ground_truth = tmp_path / "ground_truth_v2.json"
+    ground_truth.write_text(
+        json.dumps(
+            {
+                "cases": [
+                    {
+                        "id": "bglv2_test_case",
+                        "tier": "challenge",
+                        "category": "multi_artifact",
+                        "task": "Using maintenance_window.json, how many ERROR logs occurred during the maintenance window?",
+                        "artifacts": [{"name": "maintenance_window.json", "path": "maintenance_window.json"}],
+                        "answer_type": "integer",
+                        "expected": 1,
+                        "required_output": ["answer"],
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    suite = BglV2Suite()
+    cases_missing = suite.load_cases(
+        {
+            "log_file": str(log_file),
+            "ground_truth_file": str(ground_truth),
+            "tier": "challenge",
+            "perturbation_mode": "missing_supporting_artifacts",
+        }
+    )
+    assert [artifact.name for artifact in cases_missing[0].artifacts] == ["bgl.log"]
+
+    cases_noisy = suite.load_cases(
+        {
+            "log_file": str(log_file),
+            "ground_truth_file": str(ground_truth),
+            "tier": "challenge",
+            "perturbation_mode": "large_irrelevant_log_tail",
+            "noise_repetitions": 3,
+        }
+    )
+    noisy_log = cases_noisy[0].artifacts[0].content or ""
+    assert "2005-06-03-23." in noisy_log
+    assert noisy_log.count("synthetic irrelevant maintenance note") == 3
