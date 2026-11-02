@@ -1,0 +1,78 @@
+{
+  "name": "hdfs-model-ladder-local",
+  "base_experiment": {
+    "name": "hdfs-model-ladder",
+    "suite": {
+      "type": "hdfs",
+      "settings": {
+        "labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv",
+        "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions",
+        "sample_limit": 40,
+        "seed": 42
+      }
+    },
+    "runtime": {
+      "profile": "hdfs_eval",
+      "overrides": {}
+    },
+    "output_dir": "runs",
+    "tags": {
+      "suite": "hdfs",
+      "study": "model_ladder",
+      "mode": "pipeline",
+      "prompt_setup": "few_shot"
+    }
+  },
+  "axes": [
+    {
+      "name": "model",
+      "values": [
+        {
+          "label": "gemma4-8b",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "ollama",
+                "model": "gemma4:latest"
+              }
+            },
+            "tags": {
+              "model_family": "local",
+              "params_b": "8.0"
+            }
+          }
+        },
+        {
+          "label": "qwen3-8b",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "ollama",
+                "model": "qwen3:8b"
+              }
+            },
+            "tags": {
+              "model_family": "local",
+              "params_b": "8.2"
+            }
+          }
+        },
+        {
+          "label": "ministral-8b",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "ollama",
+                "model": "ministral-3:8b"
+              }
+            },
+            "tags": {
+              "model_family": "local",
+              "params_b": "8.9"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -428,6 +428,9 @@ curl -X DELETE http://localhost:8000/api/v1/sessions/session_XXXXXXXXXXXX
 - [Architecture](docs/architecture.md)
 - [Evaluation](docs/evaluation.md)
 - [Extending](docs/extending.md)
+- [Intent GraphDB integration](docs/intent-graphdb.md)
+- [inGraph FILL integration](docs/ingraph-fill-integration.md)
+- [API specification](docs/openapi.yaml)
 
 ## Future work
 

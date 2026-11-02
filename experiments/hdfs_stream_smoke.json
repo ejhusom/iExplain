@@ -1,0 +1,25 @@
+{
+  "name": "hdfs-stream-smoke",
+  "suite": {
+    "type": "hdfs_stream",
+    "settings": {
+      "labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv",
+      "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions",
+      "window_size": 8,
+      "sample_limit": 8,
+      "seed": 42
+    }
+  },
+  "runtime": {
+    "profile": "hdfs_stream_single_pass",
+    "overrides": {
+      "provider": "openai",
+      "model": "gpt-4o-mini"
+    }
+  },
+  "output_dir": "runs",
+  "tags": {
+    "suite": "hdfs_stream",
+    "mode": "single_pass"
+  }
+}

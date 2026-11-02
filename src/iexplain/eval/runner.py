@@ -18,6 +18,7 @@ from iexplain.eval.base import SuiteAdapter
 from iexplain.eval.suites.bgl import BglSuite
 from iexplain.eval.suites.bgl_v2 import BglV2Suite
 from iexplain.eval.suites.hdfs import HdfsSuite
+from iexplain.eval.suites.hdfs_stream import HdfsStreamSuite
 from iexplain.eval.suites.openrca import OpenRcaSuite
 from iexplain.runtime.models import RunOverrides, RunRequest
 from iexplain.runtime.service import IExplainService
@@ -25,6 +26,7 @@ from iexplain.runtime.service import IExplainService
 
 SUITES: dict[str, SuiteAdapter] = {
     "hdfs": HdfsSuite(),
+    "hdfs_stream": HdfsStreamSuite(),
     "bgl": BglSuite(),
     "bgl_v2": BglV2Suite(),
     "openrca": OpenRcaSuite(),
@@ -255,6 +257,7 @@ def _run_loaded_experiment(
                 progress_state=effective_progress,
             )
         )
+        _persist_case_debug_artifacts(run_dir, case)
         request = RunRequest(
             task=case.task,
             profile=experiment.runtime.profile,
@@ -409,6 +412,15 @@ def _case_progress_message(
 
 def _slug(text: str) -> str:
     return "".join(ch if ch.isalnum() or ch in {"-", "_"} else "-" for ch in text.lower()).strip("-") or "run"
+
+
+def _persist_case_debug_artifacts(run_dir: Path, case: Any) -> None:
+    for artifact in case.artifacts:
+        if artifact.name != "openrca_context.md" or artifact.content is None:
+            continue
+        target = run_dir / "debug_artifacts" / case.case_id / artifact.name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(artifact.content, encoding="utf-8")
 
 
 def _error_score(suite_name: str, message: str) -> dict[str, Any]:

@@ -312,6 +312,9 @@ def test_openrca_experiment_runner_supports_reduced_sample_selection(tmp_path: P
     assert summary["prompt_variants_seen"]["general_analyst"] == ["openrca"]
     assert row["metadata"]["task_index"] == "task_2"
     assert row["metadata"]["row_index"] == 1
+    persisted_context = run_dir / "debug_artifacts" / "bank-task_2-row_001" / "openrca_context.md"
+    assert persisted_context.exists()
+    assert persisted_context.read_text(encoding="utf-8") == "Bank telemetry schema overview."
 
 
 def test_matrix_runner_and_analysis_outputs(tmp_path: Path):

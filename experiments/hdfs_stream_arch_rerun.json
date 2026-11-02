@@ -1,0 +1,59 @@
+{
+  "name": "hdfs-stream-architecture-rerun",
+  "base_experiment": {
+    "name": "hdfs-stream-architecture-study",
+    "suite": {
+      "type": "hdfs_stream",
+      "settings": {
+        "labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv",
+        "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions",
+        "window_size": 8,
+        "sample_limit": 40,
+        "seed": 42
+      }
+    },
+    "runtime": {
+      "profile": "hdfs_stream_pipeline",
+      "overrides": {}
+    },
+    "output_dir": "runs",
+    "tags": {
+      "suite": "hdfs_stream",
+      "study": "architecture"
+    }
+  },
+  "axes": [
+    {
+      "name": "architecture",
+      "values": [
+        {
+          "label": "pipeline",
+          "patch": {
+            "runtime": { "profile": "hdfs_stream_pipeline" },
+            "tags": { "mode": "pipeline" }
+          }
+        },
+        {
+          "label": "planner",
+          "patch": {
+            "runtime": { "profile": "hdfs_stream_planner" },
+            "tags": { "mode": "planner" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "model",
+      "values": [
+        {
+          "label": "gpt-4o-mini",
+          "patch": {
+            "runtime": {
+              "overrides": { "provider": "openai", "model": "gpt-4o-mini" }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

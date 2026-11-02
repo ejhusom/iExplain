@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import tempfile
 from copy import deepcopy
 from pathlib import Path
@@ -282,7 +283,7 @@ class IExplainService:
                 target.write_text(artifact.content, encoding="utf-8")
             elif artifact.source_path is not None:
                 source = Path(artifact.source_path).expanduser().resolve()
-                target.write_text(source.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+                shutil.copyfile(source, target)
             else:
                 target.write_text("", encoding="utf-8")
             manifest.append(str(target.relative_to(workspace)))

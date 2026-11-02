@@ -1,10 +1,15 @@
 from __future__ import annotations
 
+import calendar
+import csv
 import json
+import math
 import os
 import re
+import time
 from collections import Counter
 from dataclasses import asdict, dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
@@ -622,6 +627,422 @@ def _bgl_answer_question_tool(context: ToolContext) -> ToolSpec:
     )
 
 
+_OPENRCA_UTILIZATION_CATEGORIES = ("cpu", "memory", "jvm_cpu", "jvm_heap", "network", "disk")
+# OpenRCA Bank CSV timestamps are POSIX/UTC epochs, but the gold datetime strings and task
+# windows are Beijing local time (UTC+8). Convert between the two with this fixed offset.
+_OPENRCA_TZ_OFFSET_SECONDS = 8 * 3600
+
+
+def _openrca_category(kpi_name: str) -> str:
+    name = kpi_name
+    if "JVM" in name and "Heap" in name:
+        return "jvm_heap"
+    if "JVM" in name and "CPULoad" in name:
+        return "jvm_cpu"
+    if "MemPerc" in name or "MEMUsedMem" in name or "MemPercent" in name or "MemUsage" in name:
+        return "memory"
+    if "CpuUtil" in name or "CPUCpuUtil" in name or "CpuPercent" in name or "_CPU_CPULoad" in name:
+        return "cpu"
+    if "NETWORK" in name or "NetworkRx" in name or "NetworkTx" in name or "NETPackets" in name or "NETInErr" in name or "NETOutErr" in name or "NETBandwidth" in name:
+        return "network"
+    if "LOCALDISK" in name or "DSK" in name or "Disk" in name:
+        return "disk"
+    return "other"
+
+
+def _openrca_epoch(value: Any) -> int | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+    if re.fullmatch(r"\d+(\.\d+)?", text):
+        return int(float(text))
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            parsed = datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+        return calendar.timegm(parsed.timetuple()) - _OPENRCA_TZ_OFFSET_SECONDS
+    return None
+
+
+def _openrca_datetime(epoch_seconds: float) -> str:
+    return time.strftime(
+        "%Y-%m-%d %H:%M:%S", time.gmtime(int(epoch_seconds) + _OPENRCA_TZ_OFFSET_SECONDS)
+    )
+
+
+def _openrca_str_list(value: Any) -> set[str]:
+    if value is None:
+        return set()
+    if isinstance(value, (list, tuple, set)):
+        return {str(item) for item in value}
+    return {str(value)}
+
+
+def _openrca_iter_csv(path: Path):
+    with path.open(encoding="utf-8", errors="replace", newline="") as handle:
+        reader = csv.reader(handle)
+        next(reader, None)
+        for row in reader:
+            yield row
+
+
+def _openrca_query_tool(context: ToolContext) -> ToolSpec:
+    memo: dict[str, dict[str, Any]] = {}
+
+    def _files(telemetry_dir: str) -> dict[str, Path]:
+        base = telemetry_dir.strip().strip("/")
+        return {
+            "metric_container": _safe_path(context.workspace, f"{base}/metric/metric_container.csv"),
+            "log_service": _safe_path(context.workspace, f"{base}/log/log_service.csv"),
+            "trace_span": _safe_path(context.workspace, f"{base}/trace/trace_span.csv"),
+        }
+
+    def _catalog(metric_path: Path, max_scan_rows: int) -> dict[str, Any]:
+        components: set[str] = set()
+        categories: dict[str, set[str]] = {}
+        scanned = 0
+        for row in _openrca_iter_csv(metric_path):
+            if len(row) < 4:
+                continue
+            components.add(row[1])
+            category = _openrca_category(row[2])
+            categories.setdefault(category, set()).add(row[2])
+            scanned += 1
+            if scanned >= max_scan_rows:
+                break
+        return {
+            "components": sorted(components),
+            "kpi_categories": {
+                category: sorted(list(names))[:8]
+                for category, names in sorted(categories.items())
+            },
+            "scanned_rows": scanned,
+            "sampled": scanned >= max_scan_rows,
+        }
+
+    def _metric_summary(
+        metric_path: Path,
+        start_epoch: int,
+        end_epoch: int,
+        components: set[str],
+        categories: set[str],
+        top_k: int,
+    ) -> dict[str, Any]:
+        day: dict[tuple[str, str], list[float]] = {}
+        window: dict[tuple[str, str], dict[str, float]] = {}
+        for row in _openrca_iter_csv(metric_path):
+            if len(row) < 4:
+                continue
+            cmdb_id, kpi_name = row[1], row[2]
+            if components and cmdb_id not in components:
+                continue
+            category = _openrca_category(kpi_name)
+            target_categories = categories or set(_OPENRCA_UTILIZATION_CATEGORIES)
+            if category not in target_categories:
+                continue
+            ts = _openrca_epoch(row[0])
+            if ts is None:
+                continue
+            try:
+                val = float(row[3])
+            except ValueError:
+                continue
+            key = (cmdb_id, kpi_name)
+            agg = day.get(key)
+            if agg is None:
+                day[key] = [1.0, val, val * val]
+            else:
+                agg[0] += 1.0
+                agg[1] += val
+                agg[2] += val * val
+            if start_epoch <= ts <= end_epoch:
+                win = window.get(key)
+                if win is None:
+                    window[key] = {"count": 1.0, "sum": val, "max": val, "argmax_ts": float(ts)}
+                else:
+                    win["count"] += 1.0
+                    win["sum"] += val
+                    if val > win["max"]:
+                        win["max"] = val
+                        win["argmax_ts"] = float(ts)
+        ranked: list[dict[str, Any]] = []
+        for key, win in window.items():
+            cmdb_id, kpi_name = key
+            day_count, day_sum, day_sumsq = day[key]
+            day_mean = day_sum / day_count
+            day_std = math.sqrt(max(day_sumsq / day_count - day_mean * day_mean, 0.0))
+            window_mean = win["sum"] / win["count"]
+            deviation = (win["max"] - day_mean) / (day_std + 1e-6)
+            ranked.append(
+                {
+                    "component": cmdb_id,
+                    "kpi_name": kpi_name,
+                    "category": _openrca_category(kpi_name),
+                    "window_max": round(win["max"], 4),
+                    "window_mean": round(window_mean, 4),
+                    "day_mean": round(day_mean, 4),
+                    "day_std": round(day_std, 4),
+                    "deviation_score": round(deviation, 4),
+                    "peak_time": _openrca_datetime(win["argmax_ts"]),
+                }
+            )
+        ranked.sort(key=lambda item: item["deviation_score"], reverse=True)
+        return {
+            "window": {"start": _openrca_datetime(start_epoch), "end": _openrca_datetime(end_epoch)},
+            "ranked_anomalies": ranked[:top_k],
+            "series_considered": len(window),
+        }
+
+    def _metric_series(
+        metric_path: Path,
+        start_epoch: int,
+        end_epoch: int,
+        components: set[str],
+        categories: set[str],
+        query: str | None,
+        max_points: int,
+    ) -> dict[str, Any]:
+        points: list[tuple[int, float]] = []
+        kpi_seen: set[str] = set()
+        for row in _openrca_iter_csv(metric_path):
+            if len(row) < 4:
+                continue
+            cmdb_id, kpi_name = row[1], row[2]
+            if components and cmdb_id not in components:
+                continue
+            if categories and _openrca_category(kpi_name) not in categories:
+                continue
+            if query and query.lower() not in kpi_name.lower():
+                continue
+            ts = _openrca_epoch(row[0])
+            if ts is None or not (start_epoch <= ts <= end_epoch):
+                continue
+            try:
+                val = float(row[3])
+            except ValueError:
+                continue
+            kpi_seen.add(kpi_name)
+            points.append((ts, val))
+        points.sort(key=lambda item: item[0])
+        peak = max(points, key=lambda item: item[1], default=None)
+        step = max(1, len(points) // max_points)
+        sampled = [
+            {"time": _openrca_datetime(ts), "value": round(val, 4)}
+            for ts, val in points[::step][:max_points]
+        ]
+        return {
+            "matched_kpis": sorted(kpi_seen)[:10],
+            "point_count": len(points),
+            "peak": (
+                {"time": _openrca_datetime(peak[0]), "value": round(peak[1], 4)} if peak else None
+            ),
+            "series": sampled,
+        }
+
+    def _log_search(
+        log_path: Path,
+        query: str,
+        components: set[str],
+        start_epoch: int | None,
+        end_epoch: int | None,
+        max_matches: int,
+    ) -> dict[str, Any]:
+        needle = query.lower()
+        matches: list[dict[str, Any]] = []
+        for row in _openrca_iter_csv(log_path):
+            if len(row) < 5:
+                continue
+            cmdb_id, value = row[2], row[4]
+            if components and cmdb_id not in components:
+                continue
+            ts = _openrca_epoch(row[1])
+            if start_epoch is not None and (ts is None or ts < start_epoch):
+                continue
+            if end_epoch is not None and (ts is None or ts > end_epoch):
+                continue
+            if needle and needle not in value.lower():
+                continue
+            matches.append(
+                {
+                    "time": _openrca_datetime(ts) if ts is not None else row[1],
+                    "component": cmdb_id,
+                    "log_name": row[3],
+                    "value": value[:240],
+                }
+            )
+            if len(matches) >= max_matches:
+                break
+        return {"query": query, "match_count": len(matches), "matches": matches}
+
+    def _trace_latency(
+        trace_path: Path,
+        start_epoch: int,
+        end_epoch: int,
+        components: set[str],
+        top_k: int,
+        max_scan_rows: int,
+    ) -> dict[str, Any]:
+        stats: dict[str, dict[str, float]] = {}
+        scanned = 0
+        truncated = False
+        for row in _openrca_iter_csv(trace_path):
+            scanned += 1
+            if scanned > max_scan_rows:
+                truncated = True
+                break
+            if len(row) < 6:
+                continue
+            ts_raw = _openrca_epoch(row[0])
+            if ts_raw is None:
+                continue
+            ts = ts_raw // 1000 if ts_raw > 10_000_000_000 else ts_raw
+            if not (start_epoch <= ts <= end_epoch):
+                continue
+            cmdb_id = row[1]
+            if components and cmdb_id not in components:
+                continue
+            try:
+                duration = float(row[5])
+            except ValueError:
+                continue
+            agg = stats.get(cmdb_id)
+            if agg is None:
+                stats[cmdb_id] = {"count": 1.0, "sum": duration, "max": duration}
+            else:
+                agg["count"] += 1.0
+                agg["sum"] += duration
+                agg["max"] = max(agg["max"], duration)
+        ranked = [
+            {
+                "component": cmdb_id,
+                "span_count": int(agg["count"]),
+                "mean_duration": round(agg["sum"] / agg["count"], 3),
+                "max_duration": round(agg["max"], 3),
+            }
+            for cmdb_id, agg in stats.items()
+        ]
+        ranked.sort(key=lambda item: item["mean_duration"], reverse=True)
+        return {"ranked_latency": ranked[:top_k], "scanned_rows": scanned, "truncated": truncated}
+
+    def handler(
+        op: str,
+        telemetry_dir: str,
+        start_time: Any = None,
+        end_time: Any = None,
+        component: Any = None,
+        kpi_category: Any = None,
+        query: str | None = None,
+        top_k: int = 8,
+        max_points: int = 60,
+        max_matches: int = 20,
+        **_: Any,
+    ) -> dict[str, Any]:
+        files = _files(telemetry_dir)
+        components = _openrca_str_list(component)
+        categories = _openrca_str_list(kpi_category)
+        top_k = max(1, min(int(top_k), 20))
+        max_points = max(5, min(int(max_points), 200))
+        max_matches = max(1, min(int(max_matches), 50))
+        start_epoch = _openrca_epoch(start_time)
+        end_epoch = _openrca_epoch(end_time)
+
+        memo_key = json.dumps(
+            [op, telemetry_dir, start_epoch, end_epoch, sorted(components), sorted(categories), query, top_k, max_points, max_matches],
+            sort_keys=True,
+        )
+        if memo_key in memo:
+            return memo[memo_key]
+
+        try:
+            if op == "catalog":
+                if not files["metric_container"].exists():
+                    return {"error": f"File not found: {files['metric_container']}"}
+                result = _catalog(files["metric_container"], max_scan_rows=400_000)
+            elif op == "metric_summary":
+                if start_epoch is None or end_epoch is None:
+                    return {"error": "metric_summary requires start_time and end_time."}
+                if not files["metric_container"].exists():
+                    return {"error": f"File not found: {files['metric_container']}"}
+                result = _metric_summary(files["metric_container"], start_epoch, end_epoch, components, categories, top_k)
+            elif op == "metric_series":
+                if start_epoch is None or end_epoch is None:
+                    return {"error": "metric_series requires start_time and end_time."}
+                if not files["metric_container"].exists():
+                    return {"error": f"File not found: {files['metric_container']}"}
+                result = _metric_series(files["metric_container"], start_epoch, end_epoch, components, categories, query, max_points)
+            elif op == "log_search":
+                if not query:
+                    return {"error": "log_search requires a query substring."}
+                if not files["log_service"].exists():
+                    return {"error": f"File not found: {files['log_service']}"}
+                result = _log_search(files["log_service"], query, components, start_epoch, end_epoch, max_matches)
+            elif op == "trace_latency":
+                if start_epoch is None or end_epoch is None:
+                    return {"error": "trace_latency requires start_time and end_time."}
+                if not files["trace_span"].exists():
+                    return {"error": f"File not found: {files['trace_span']}"}
+                result = _trace_latency(files["trace_span"], start_epoch, end_epoch, components, top_k, max_scan_rows=3_000_000)
+            else:
+                return {"error": f"Unknown op: {op}. Use catalog, metric_summary, metric_series, log_search, or trace_latency."}
+        except FileNotFoundError as exc:
+            return {"error": str(exc)}
+
+        memo[memo_key] = result
+        return result
+
+    return ToolSpec(
+        name="openrca_query",
+        description=(
+            "Query OpenRCA telemetry (metric/log/trace CSVs) with bounded aggregates instead of "
+            "reading raw rows. Ops: `catalog` (list components and KPI categories), `metric_summary` "
+            "(rank components x KPI by in-window deviation from their daily baseline; the top result is "
+            "usually the root-cause component and its peak_time is the occurrence time), `metric_series` "
+            "(downsampled series + peak for one component/category), `log_search` (bounded substring "
+            "search over logs), and `trace_latency` (per-component span duration stats). Pass times as "
+            "'YYYY-MM-DD HH:MM:SS'."
+        ),
+        parameters={
+            "type": "object",
+            "properties": {
+                "op": {
+                    "type": "string",
+                    "enum": ["catalog", "metric_summary", "metric_series", "log_search", "trace_latency"],
+                    "description": "The query operation to run.",
+                },
+                "telemetry_dir": {
+                    "type": "string",
+                    "description": "Day folder relative to the workspace, e.g. dataset/Bank/telemetry/2021_03_04.",
+                },
+                "start_time": {"type": "string", "description": "Window start, 'YYYY-MM-DD HH:MM:SS'."},
+                "end_time": {"type": "string", "description": "Window end, 'YYYY-MM-DD HH:MM:SS'."},
+                "component": {
+                    "anyOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "string"}},
+                    ],
+                    "description": "Optional component filter (cmdb_id), e.g. Redis02.",
+                },
+                "kpi_category": {
+                    "anyOf": [
+                        {"type": "string", "enum": list(_OPENRCA_UTILIZATION_CATEGORIES)},
+                        {"type": "array", "items": {"type": "string", "enum": list(_OPENRCA_UTILIZATION_CATEGORIES)}},
+                    ],
+                    "description": "Optional KPI category filter: cpu, memory, jvm_cpu, jvm_heap, network, disk.",
+                },
+                "query": {"type": "string", "description": "Substring for log_search or to narrow metric_series KPI names."},
+                "top_k": {"type": "integer", "default": 8, "minimum": 1, "maximum": 20},
+                "max_points": {"type": "integer", "default": 60, "minimum": 5, "maximum": 200},
+                "max_matches": {"type": "integer", "default": 20, "minimum": 1, "maximum": 50},
+            },
+            "required": ["op", "telemetry_dir"],
+        },
+        handler=handler,
+    )
+
+
 def _fetch_url_tool(_: ToolContext) -> ToolSpec:
     def handler(url: str, timeout_seconds: int = 20) -> dict[str, Any]:
         response = requests.get(url, timeout=timeout_seconds)
@@ -781,6 +1202,7 @@ STANDARD_TOOL_BUILDERS: dict[str, Callable[[ToolContext], ToolSpec]] = {
     "fetch_fill_entity_bundle": _fetch_fill_entity_bundle_tool,
     "fetch_intent_bundle": _fetch_intent_bundle_tool,
     "list_files": _list_files_tool,
+    "openrca_query": _openrca_query_tool,
     "read_file": _read_file_tool,
     "search_text": _search_text_tool,
     "fetch_url": _fetch_url_tool,

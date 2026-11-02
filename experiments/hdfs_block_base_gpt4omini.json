@@ -1,0 +1,7 @@
+{
+  "name": "hdfs-block-base-gpt4o-mini",
+  "output_dir": "runs",
+  "runtime": {"overrides": {"model": "gpt-4o-mini", "provider": "openai"}, "profile": "hdfs_single_pass_eval"},
+  "suite": {"settings": {"labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv", "sample_limit": 40, "seed": 42, "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions"}, "type": "hdfs"},
+  "tags": {"mode": "single_pass", "study": "block_model_ladder", "suite": "hdfs", "model_family": "remote", "params_b": "na"}
+}

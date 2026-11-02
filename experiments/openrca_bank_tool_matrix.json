@@ -1,0 +1,54 @@
+{
+  "name": "openrca-bank-tool-matrix",
+  "base_experiment": {
+    "name": "openrca-bank-tool-study",
+    "suite": {
+      "type": "openrca",
+      "settings": {
+        "openrca_root": "../OpenRCA",
+        "dataset": "Bank",
+        "start_idx": 0,
+        "sample_limit": 6
+      }
+    },
+    "runtime": {
+      "profile": "openrca_eval",
+      "overrides": {}
+    },
+    "output_dir": "runs/openrca_tool_matrix",
+    "tags": {
+      "suite": "openrca",
+      "dataset": "Bank",
+      "study": "tooling"
+    }
+  },
+  "axes": [
+    {
+      "name": "tool_setup",
+      "values": [
+        {
+          "label": "raw_text",
+          "patch": {
+            "runtime": {
+              "profile": "openrca_eval"
+            },
+            "tags": {
+              "tool_setup": "raw_text"
+            }
+          }
+        },
+        {
+          "label": "structured",
+          "patch": {
+            "runtime": {
+              "profile": "openrca_structured_eval"
+            },
+            "tags": {
+              "tool_setup": "structured"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

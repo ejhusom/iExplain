@@ -88,6 +88,55 @@ PIPELINES: dict[str, list[PipelineStage]] = {
             ),
         ),
     ],
+    "hdfs_stream": [
+        PipelineStage(
+            name="preprocess",
+            role="log_preprocessor",
+            tools=["read_file", "search_text"],
+            task_template=(
+                "Original task:\n{task}\n\n"
+                "`stream.log` interleaves log lines from several HDFS blocks. For each candidate "
+                "block ID in the task, gather all of its log lines from the stream (use "
+                "search_text on the block ID), then return a per-block normalized event list "
+                "covering every candidate block."
+            ),
+        ),
+        PipelineStage(
+            name="detect",
+            role="log_anomaly_detector",
+            tools=[],
+            task_template=(
+                "Original task:\n{task}\n\n"
+                "Per-block normalized events:\n{previous_output}\n\n"
+                "Classify each candidate block as normal (0) or anomalous (1), with a brief reason."
+            ),
+        ),
+        PipelineStage(
+            name="explain",
+            role="log_explainer",
+            tools=[],
+            task_template=(
+                "Original task:\n{task}\n\n"
+                "Prior stage outputs:\n{history}\n\n"
+                "Return ONLY the JSON object "
+                '{{"blocks": [{{"block_id": "<id>", "label": 0 or 1}}, ...]}} with exactly one '
+                "entry per candidate block, matching the detector labels. No prose or code fences."
+            ),
+        ),
+    ],
+    "hdfs_stream_single_pass": [
+        PipelineStage(
+            name="classify",
+            role="log_anomaly_detector",
+            tools=["read_file", "search_text"],
+            task_template=(
+                "Original task:\n{task}\n\n"
+                "Read `stream.log`, gather each candidate block's lines from the interleaved "
+                "stream, and classify all of them directly. Return ONLY the JSON object specified "
+                "in the task."
+            ),
+        ),
+    ],
     "bgl_question_answering": [
         PipelineStage(
             name="answer",

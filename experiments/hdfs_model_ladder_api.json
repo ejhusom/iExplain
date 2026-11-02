@@ -1,0 +1,63 @@
+{
+  "name": "hdfs-model-ladder-api",
+  "base_experiment": {
+    "name": "hdfs-model-ladder",
+    "suite": {
+      "type": "hdfs",
+      "settings": {
+        "labels_csv": "data/hdfs/HDFS_anomaly_label_385_sampled_balanced.csv",
+        "sessions_dir": "data/hdfs/HDFS_385_balanced_sampled_sessions",
+        "sample_limit": 40,
+        "seed": 42
+      }
+    },
+    "runtime": {
+      "profile": "hdfs_eval",
+      "overrides": {}
+    },
+    "output_dir": "runs",
+    "tags": {
+      "suite": "hdfs",
+      "study": "model_ladder",
+      "mode": "pipeline",
+      "prompt_setup": "few_shot"
+    }
+  },
+  "axes": [
+    {
+      "name": "model",
+      "values": [
+        {
+          "label": "gpt-5-mini",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "openai",
+                "model": "gpt-5-mini"
+              }
+            },
+            "tags": {
+              "model_family": "remote",
+              "params_b": "na"
+            }
+          }
+        },
+        {
+          "label": "gpt-4o",
+          "patch": {
+            "runtime": {
+              "overrides": {
+                "provider": "openai",
+                "model": "gpt-4o"
+              }
+            },
+            "tags": {
+              "model_family": "remote",
+              "params_b": "na"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

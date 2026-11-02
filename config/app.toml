@@ -84,6 +84,33 @@ skills = ["hdfs-anomaly-analysis"]
 max_turns = 8
 max_delegations = 2
 
+[profiles.hdfs_stream_single_pass]
+mode = "pipeline"
+pipeline = "hdfs_stream_single_pass"
+tools = ["read_file", "search_text"]
+skills = ["hdfs-stream-analysis"]
+max_turns = 20
+
+[profiles.hdfs_stream_pipeline]
+mode = "pipeline"
+pipeline = "hdfs_stream"
+tools = ["read_file", "search_text"]
+skills = ["hdfs-stream-analysis"]
+max_turns = 20
+
+[profiles.hdfs_stream_agent]
+mode = "agent"
+tools = ["read_file", "search_text"]
+skills = ["hdfs-stream-analysis"]
+max_turns = 24
+
+[profiles.hdfs_stream_planner]
+mode = "planner"
+tools = ["read_file", "search_text"]
+skills = ["hdfs-stream-analysis"]
+max_turns = 30
+max_delegations = 3
+
 [profiles.bgl_eval]
 mode = "pipeline"
 pipeline = "bgl_question_answering"
@@ -145,6 +172,15 @@ max_turns = 12
 
 [profiles.openrca_eval.prompt_overrides]
 general_analyst = "openrca"
+
+[profiles.openrca_structured_eval]
+mode = "agent"
+tools = ["openrca_query", "read_file"]
+skills = ["generic-log-analysis"]
+max_turns = 12
+
+[profiles.openrca_structured_eval.prompt_overrides]
+general_analyst = "openrca_structured"
 
 [profiles.intent_demo]
 mode = "pipeline"
